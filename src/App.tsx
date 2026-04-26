@@ -1,15 +1,13 @@
-import { lazy, Suspense } from 'react';
 import { Link, NavLink, Route, Routes } from 'react-router-dom';
-
-const HomePage = lazy(() => import('./pages/HomePage'));
-const ClassDetailPage = lazy(() => import('./pages/ClassDetailPage'));
-const SeatHistoryPage = lazy(() => import('./pages/SeatHistoryPage'));
-const SeatPage = lazy(() => import('./pages/SeatPage'));
-const IdiomBattlePage = lazy(() => import('./pages/IdiomBattlePage'));
-const TeamWordSurvivalPage = lazy(() => import('./pages/TeamWordSurvivalPage'));
-const RoleAssignmentPage = lazy(() => import('./pages/RoleAssignmentPage'));
-const RoleAssignmentHistoryPage = lazy(() => import('./pages/RoleAssignmentHistoryPage'));
-const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+import HomePage from './pages/HomePage';
+import ClassDetailPage from './pages/ClassDetailPage';
+import SeatHistoryPage from './pages/SeatHistoryPage';
+import SeatPage from './pages/SeatPage';
+import IdiomBattlePage from './pages/IdiomBattlePage';
+import TeamWordSurvivalPage from './pages/TeamWordSurvivalPage';
+import RoleAssignmentPage from './pages/RoleAssignmentPage';
+import RoleAssignmentHistoryPage from './pages/RoleAssignmentHistoryPage';
+import SettingsPage from './pages/SettingsPage';
 
 const navItems = [
   { to: '/', label: '홈', end: true },
@@ -58,26 +56,24 @@ export default function App() {
         </div>
       </header>
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 pb-28">
-        <Suspense fallback={<div className="flex items-center justify-center h-40 text-slate-400 text-sm">로딩 중...</div>}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/classes/:classId" element={<ClassDetailPage />} />
-            <Route
-              path="/classes/:classId/seat-history/:historyId"
-              element={<SeatHistoryPage />}
-            />
-            <Route path="/seat" element={<SeatPage />} />
-            <Route path="/role-assignment" element={<RoleAssignmentPage />} />
-            <Route
-              path="/classes/:classId/role-history/:historyId"
-              element={<RoleAssignmentHistoryPage />}
-            />
-            <Route path="/word-survival" element={<IdiomBattlePage />} />
-            <Route path="/word-survival-team" element={<TeamWordSurvivalPage />} />
-            <Route path="/idiom-battle" element={<IdiomBattlePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-          </Routes>
-        </Suspense>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/classes/:classId" element={<ClassDetailPage />} />
+          <Route
+            path="/classes/:classId/seat-history/:historyId"
+            element={<SeatHistoryPage />}
+          />
+          <Route path="/seat" element={<SeatPage />} />
+          <Route path="/role-assignment" element={<RoleAssignmentPage />} />
+          <Route
+            path="/classes/:classId/role-history/:historyId"
+            element={<RoleAssignmentHistoryPage />}
+          />
+          <Route path="/word-survival" element={<IdiomBattlePage />} />
+          <Route path="/word-survival-team" element={<TeamWordSurvivalPage />} />
+          <Route path="/idiom-battle" element={<IdiomBattlePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+        </Routes>
       </main>
       <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 text-xs text-slate-500 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur no-print">
         <div className="mx-auto max-w-5xl px-4 py-3">

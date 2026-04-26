@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { db } from '../db';
 import { exportBackup, importBackupFromFile } from '../lib/backup';
 import defaultProblemDeck from '../data/idioms.json';
 import idiomInitialProblemDeck from '../data/idiom_initials.json';
 import idiomMeaningQuizDeck from '../data/idiom_meaning_quiz.json';
 import proverbProblemDeck from '../data/proverbs.json';
+import grade3ProblemDeck from '../data/grade3_vocab.json';
+import grade4ProblemDeck from '../data/grade4_vocab.json';
+import grade5ProblemDeck from '../data/grade5_vocab.json';
+import grade6ProblemDeck from '../data/grade6_vocab.json';
 
 type PrintableProblem = {
   phrase: string;
@@ -75,42 +79,39 @@ const defaultProblemPacks: ProblemPack[] = [
     description: '초성/빈칸 힌트로 속담을 맞히는 문제팩입니다.',
     problems: normalizePrintableProblems(proverbProblemDeck),
   },
-  { id: 'grade3-vocab', name: '3학년 필수 어휘', description: '뜻을 보고 3학년 필수 어휘를 맞히는 문제팩입니다.', problems: [] },
-  { id: 'grade4-vocab', name: '4학년 필수 어휘', description: '뜻을 보고 4학년 필수 어휘를 맞히는 문제팩입니다.', problems: [] },
-  { id: 'grade5-vocab', name: '5학년 필수 어휘', description: '뜻을 보고 5학년 필수 어휘를 맞히는 문제팩입니다.', problems: [] },
-  { id: 'grade6-vocab', name: '6학년 필수 어휘', description: '뜻을 보고 6학년 필수 어휘를 맞히는 문제팩입니다.', problems: [] },
+  {
+    id: 'grade3-vocab',
+    name: '3학년 필수 어휘',
+    description: '뜻을 보고 3학년 필수 어휘를 맞히는 문제팩입니다.',
+    problems: normalizePrintableProblems(grade3ProblemDeck),
+  },
+  {
+    id: 'grade4-vocab',
+    name: '4학년 필수 어휘',
+    description: '뜻을 보고 4학년 필수 어휘를 맞히는 문제팩입니다.',
+    problems: normalizePrintableProblems(grade4ProblemDeck),
+  },
+  {
+    id: 'grade5-vocab',
+    name: '5학년 필수 어휘',
+    description: '뜻을 보고 5학년 필수 어휘를 맞히는 문제팩입니다.',
+    problems: normalizePrintableProblems(grade5ProblemDeck),
+  },
+  {
+    id: 'grade6-vocab',
+    name: '6학년 필수 어휘',
+    description: '뜻을 보고 6학년 필수 어휘를 맞히는 문제팩입니다.',
+    problems: normalizePrintableProblems(grade6ProblemDeck),
+  },
 ];
-
-const GRADE_VOCAB_MAP: Record<string, string> = {
-  'grade3-vocab': '/data/grade3_vocab.json',
-  'grade4-vocab': '/data/grade4_vocab.json',
-  'grade5-vocab': '/data/grade5_vocab.json',
-  'grade6-vocab': '/data/grade6_vocab.json',
-};
 
 export default function SettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const [previewPackId, setPreviewPackId] = useState<string | null>(null);
-  const [vocabProblems, setVocabProblems] = useState<PrintableProblem[]>([]);
-
-  useEffect(() => {
-    if (!previewPackId) return;
-    const path = GRADE_VOCAB_MAP[previewPackId];
-    if (!path) { setVocabProblems([]); return; }
-    setVocabProblems([]);
-    fetch(path).then((r) => r.json()).then((data) => {
-      setVocabProblems(normalizePrintableProblems(data));
-    }).catch(() => setVocabProblems([]));
-  }, [previewPackId]);
-
-  const previewPack = useMemo(() => {
-    const pack = defaultProblemPacks.find((p) => p.id === previewPackId) ?? null;
-    if (!pack) return null;
-    if (previewPackId && previewPackId in GRADE_VOCAB_MAP) {
-      return { ...pack, problems: vocabProblems };
-    }
-    return pack;
-  }, [previewPackId, vocabProblems]);
+  const previewPack = useMemo(
+    () => defaultProblemPacks.find((pack) => pack.id === previewPackId) ?? null,
+    [previewPackId],
+  );
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
