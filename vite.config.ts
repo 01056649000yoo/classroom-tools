@@ -15,7 +15,7 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'vocab-data',
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              expiration: { maxEntries: 10 },
             },
           },
         ],
