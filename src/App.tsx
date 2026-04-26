@@ -77,7 +77,7 @@ export default function App() {
       </main>
       <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 text-xs text-slate-500 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur no-print">
         <div className="mx-auto max-w-5xl px-4 py-3">
-          <div className="space-y-1 text-center">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center">
             <p>
               운영책임자: 유쌤
               <span className="mx-2 text-slate-300">•</span>
