@@ -5,10 +5,6 @@ import defaultProblemDeck from '../data/idioms.json';
 import idiomInitialProblemDeck from '../data/idiom_initials.json';
 import idiomMeaningQuizDeck from '../data/idiom_meaning_quiz.json';
 import proverbProblemDeck from '../data/proverbs.json';
-import grade3ProblemDeck from '../data/grade3_vocab.json';
-import grade4ProblemDeck from '../data/grade4_vocab.json';
-import grade5ProblemDeck from '../data/grade5_vocab.json';
-import grade6ProblemDeck from '../data/grade6_vocab.json';
 import { db, type HistoryEntry } from '../db';
 import { type SeatResultSeat } from '../lib/backup';
 import { shuffle } from '../lib/shuffle';
@@ -311,24 +307,37 @@ export default function TeamWordSurvivalPage() {
   const idiomInitialProblems = useMemo(() => normalizeProblemPack(idiomInitialProblemDeck), []);
   const idiomMeaningQuizProblems = useMemo(() => normalizeProblemPack(idiomMeaningQuizDeck), []);
   const proverbProblems = useMemo(() => normalizeProblemPack(proverbProblemDeck), []);
-  const grade3Problems = useMemo(() => normalizeProblemPack(grade3ProblemDeck), []);
-  const grade4Problems = useMemo(() => normalizeProblemPack(grade4ProblemDeck), []);
-  const grade5Problems = useMemo(() => normalizeProblemPack(grade5ProblemDeck), []);
-  const grade6Problems = useMemo(() => normalizeProblemPack(grade6ProblemDeck), []);
+  const [vocabProblems, setVocabProblems] = useState<ProblemCard[]>([]);
   const [savedPacks, setSavedPacks] = useState<SavedProblemPack[]>(() => loadSavedProblemPacks());
   const [selectedPackId, setSelectedPackId] = useState('idiom');
   const [rangeStart, setRangeStart] = useState(1);
   const [rangeEnd, setRangeEnd] = useState<number | null>(null);
   const [matchRule, setMatchRule] = useState<MatchRule>(MATCH_RULES[0]);
+
+  const GRADE_VOCAB_MAP: Record<string, string> = {
+    'grade3-vocab': '/data/grade3_vocab.json',
+    'grade4-vocab': '/data/grade4_vocab.json',
+    'grade5-vocab': '/data/grade5_vocab.json',
+    'grade6-vocab': '/data/grade6_vocab.json',
+  };
+
+  useEffect(() => {
+    const path = GRADE_VOCAB_MAP[selectedPackId];
+    if (!path) { setVocabProblems([]); return; }
+    setVocabProblems([]);
+    fetch(path).then((r) => r.json()).then((data) => {
+      setVocabProblems(normalizeProblemPack(data));
+    }).catch(() => setVocabProblems([]));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPackId]);
+
   const selectedSavedPack = savedPacks.find((pack) => pack.id === selectedPackId);
+  const isGradeVocab = selectedPackId in GRADE_VOCAB_MAP;
   const problems = selectedSavedPack?.problems ?? (selectedPackId === 'proverb' ? proverbProblems
     : selectedPackId === 'idiom-initials' ? idiomInitialProblems
       : selectedPackId === 'idiom-meaning-quiz' ? idiomMeaningQuizProblems
-        : selectedPackId === 'grade3-vocab' ? grade3Problems
-      : selectedPackId === 'grade4-vocab' ? grade4Problems
-        : selectedPackId === 'grade5-vocab' ? grade5Problems
-          : selectedPackId === 'grade6-vocab' ? grade6Problems
-            : idiomProblems);
+        : isGradeVocab ? vocabProblems
+          : idiomProblems);
 
   const slicedProblems = useMemo(() => {
     if (problems.length === 0) return problems;
