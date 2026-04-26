@@ -1,36 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  plugins: [
-    react(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,json}'],
-        runtimeCaching: [
-          {
-            urlPattern: /\/data\/.*\.json$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'vocab-data',
-              expiration: { maxEntries: 10 },
-            },
-          },
-        ],
-      },
-      manifest: {
-        name: '문해력 서바이벌',
-        short_name: '문해력',
-        lang: 'ko',
-        theme_color: '#0f172a',
-        background_color: '#ffffff',
-        display: 'standalone',
-        icons: [],
-      },
-    }),
-  ],
+  plugins: [react()],
   build: {
     rollupOptions: {
       output: {
