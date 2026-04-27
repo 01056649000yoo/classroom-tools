@@ -49,7 +49,15 @@ export interface Student {
 export interface HistoryEntry {
   id?: number;
   classId: number;
-  tool: 'seat' | 'order' | 'tournament' | 'idiom' | 'word-survival' | 'word-survival-team' | 'role-assignment';
+  tool:
+    | 'seat'
+    | 'order'
+    | 'tournament'
+    | 'idiom'
+    | 'word-survival'
+    | 'word-survival-team'
+    | 'role-assignment'
+    | 'cooperative-speed-quiz';
   title: string;
   payload: unknown;
   createdAt: number;

@@ -356,6 +356,7 @@ export default function TeamWordSurvivalPage() {
   const [answerOpen, setAnswerOpen] = useState(false);
   const [stage, setStage] = useState<Stage>('ready');
   const [championTeamId, setChampionTeamId] = useState<string | null>(null);
+  const [pendingSession, setPendingSession] = useState<SavedTeamBattleSession | null>(null);
   const [restoredSessionAt, setRestoredSessionAt] = useState<number | null>(null);
   const prevBracketVisibleRef = useRef(false);
 
@@ -373,6 +374,24 @@ export default function TeamWordSurvivalPage() {
   const activeProblem = currentMatch?.problemIndex != null ? slicedProblems[currentMatch.problemIndex] : null;
   const currentParticipantCount = new Set(currentRoundMatches.flatMap((match) => [match.teamAId, match.teamBId].filter(Boolean))).size;
 
+  function applySavedSession(savedSession: SavedTeamBattleSession) {
+    setMatches(savedSession.matches);
+    setCurrentRound(savedSession.currentRound);
+    setSelectedPackId(savedSession.selectedPackId);
+    setMatchRule(savedSession.matchRule);
+    setModalPhase(savedSession.modalPhase);
+    setModalOpen(true);
+    setPendingSession(null);
+    setRestoredSessionAt(savedSession.savedAt);
+  }
+
+  function discardPendingSession() {
+    if (!classId) return;
+    clearTeamBattleSession(classId);
+    setPendingSession(null);
+    setRestoredSessionAt(null);
+  }
+
   useEffect(() => {
     setMatches([]);
     setCurrentRound(0);
@@ -381,18 +400,14 @@ export default function TeamWordSurvivalPage() {
     setStage('ready');
     setModalPhase('bracket');
     setModalOpen(false);
+    setPendingSession(null);
     setRestoredSessionAt(null);
 
     if (!classId || seatSnapshot.length === 0) return;
     const savedSession = loadTeamBattleSession(classId, seatSignature);
     if (!savedSession) return;
 
-    setMatches(savedSession.matches);
-    setCurrentRound(savedSession.currentRound);
-    setSelectedPackId(savedSession.selectedPackId);
-    setMatchRule(savedSession.matchRule);
-    setModalPhase(savedSession.modalPhase);
-    setModalOpen(true);
+    setPendingSession(savedSession);
     setRestoredSessionAt(savedSession.savedAt);
   }, [classId, seatSignature, seatSnapshot.length]);
 
@@ -454,6 +469,7 @@ export default function TeamWordSurvivalPage() {
     setStage('ready');
     setModalPhase('bracket');
     setModalOpen(true);
+    setPendingSession(null);
     setRestoredSessionAt(null);
   }
 
@@ -622,9 +638,28 @@ export default function TeamWordSurvivalPage() {
         </div>
       </div>
 
-      {restoredSessionAt && matches.length > 0 && !championTeamId && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          같은 자리배치의 진행 중이던 팀전을 불러왔습니다. 대진표나 현재 경기 모달에서 이어서 진행할 수 있습니다.
+      {pendingSession && restoredSessionAt && !championTeamId && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900">
+          <div className="font-semibold">같은 자리배치의 진행 중이던 팀전이 있습니다.</div>
+          <div className="mt-1 text-emerald-800">
+            {formatDateTime(restoredSessionAt)} 기준으로 저장된 대진을 이어서 진행할지, 새로 시작할지 선택해 주세요.
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => applySavedSession(pendingSession)}
+              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-500"
+            >
+              이어서 진행
+            </button>
+            <button
+              type="button"
+              onClick={discardPendingSession}
+              className="rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100"
+            >
+              삭제하기
+            </button>
+          </div>
         </div>
       )}
 
@@ -720,27 +755,32 @@ export default function TeamWordSurvivalPage() {
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button className="absolute inset-0 bg-slate-950/70" onClick={() => setModalOpen(false)} aria-label="닫기" />
-          <div className="relative w-full max-w-5xl rounded-[2rem] bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <div>
-                <div className="text-xs tracking-[0.35em] text-slate-400">TEAM BATTLE</div>
-                <h2 className="text-2xl font-black text-slate-900 mt-2">{champion ? '팀전 종료' : modalPhase === 'bracket' ? `${roundName(currentParticipantCount)} 대진 확인` : `${roundName(currentParticipantCount)} 진행`}</h2>
+          <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl animate-modalRise">
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              <div className="shrink-0 p-5 pb-4 md:p-6 md:pb-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-xs tracking-[0.35em] text-slate-400">TEAM BATTLE</div>
+                    <h2 className="mt-2 text-2xl font-black text-slate-900">{champion ? '팀전 종료' : modalPhase === 'bracket' ? `${roundName(currentParticipantCount)} 대진 확인` : `${roundName(currentParticipantCount)} 진행`}</h2>
+                  </div>
+                  <button onClick={() => setModalOpen(false)} className="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-100">닫기</button>
+                </div>
               </div>
-              <button onClick={() => setModalOpen(false)} className="px-3 py-1.5 rounded-md border border-slate-300 hover:bg-slate-100">닫기</button>
-            </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 md:px-6 md:pb-6">
 
             {champion ? (
-              <div className="min-h-[460px] flex flex-col items-center justify-center text-center">
-                <div className="text-[90px]">🏆</div>
-                <div className="text-5xl font-black text-slate-900">{champion.label}</div>
-                <div className="text-2xl text-slate-600 mt-3">{champion.members.join(' · ')}</div>
+              <div className="min-h-[340px] flex flex-col items-center justify-center text-center">
+                <div className="text-[72px]">🏆</div>
+                <div className="text-4xl font-black text-slate-900">{champion.label}</div>
+                <div className="mt-3 text-xl text-slate-600">{champion.members.join(' · ')}</div>
               </div>
             ) : modalPhase === 'bracket' ? (
-              <div className="min-h-[460px] flex flex-col gap-5">
-                <div className="rounded-[2rem] bg-slate-950 text-white p-6 md:p-8">
+              <div className="flex flex-col gap-5">
+                <div className="rounded-[2rem] bg-slate-950 text-white p-4 md:p-5">
                   <div className="text-center mb-5">
                     <div className="text-xs tracking-[0.35em] text-amber-200">TEAM BRACKET</div>
-                    <div className="text-4xl font-black mt-2">{roundName(currentParticipantCount)}</div>
+                    <div className="text-3xl md:text-4xl font-black mt-2">{roundName(currentParticipantCount)}</div>
                     <div className="text-sm text-slate-300 mt-2">{matchRuleLabel(matchRule)} · 위에서 아래 순서대로 경기가 진행됩니다.</div>
                   </div>
                   <div className="grid gap-3">
@@ -748,21 +788,21 @@ export default function TeamWordSurvivalPage() {
                       const bracketTeamA = match.teamAId ? teamMap.get(match.teamAId) : null;
                       const bracketTeamB = match.teamBId ? teamMap.get(match.teamBId) : null;
                       return (
-                        <div key={match.id} className={`grid grid-cols-[1fr,70px,1fr] items-center gap-3 rounded-2xl border px-4 py-3 ${match.winnerTeamId ? 'border-emerald-300/40 bg-emerald-300/10' : 'border-white/10 bg-white/8'}`}>
-                          <div className="rounded-xl bg-white px-3 py-3 text-center text-slate-900">
-                            <div className="font-black text-lg">{bracketTeamA?.label ?? '대기'}</div>
+                        <div key={match.id} className={`grid grid-cols-[1fr,60px,1fr] items-center gap-2 rounded-2xl border px-3 py-2.5 ${match.winnerTeamId ? 'border-emerald-300/40 bg-emerald-300/10' : 'border-white/10 bg-white/8'}`}>
+                          <div className="rounded-xl bg-white px-3 py-2.5 text-center text-slate-900">
+                            <div className="font-black text-base md:text-lg">{bracketTeamA?.label ?? '대기'}</div>
                             <div className="text-xs text-slate-500 mt-1">{bracketTeamA?.members.join(' · ')}</div>
                             <div className="mt-2 text-sm font-black text-blue-600">{match.teamAScore}승</div>
                           </div>
-                          <div className="relative h-16 flex items-center justify-center">
+                          <div className="relative h-14 flex items-center justify-center">
                             <div className="absolute left-0 right-0 top-1/2 h-px bg-amber-200/60" />
                             <div className="absolute left-1/2 top-2 bottom-2 w-px bg-amber-200/60" />
                             <div className="relative z-10 rounded-full bg-amber-300 text-slate-950 px-2 py-1 text-[11px] font-black">
                               {match.autoAdvance ? 'PASS' : `${match.order + 1}`}
                             </div>
                           </div>
-                          <div className="rounded-xl bg-white px-3 py-3 text-center text-slate-900">
-                            <div className="font-black text-lg">{bracketTeamB?.label ?? (match.autoAdvance ? '자동 진출' : '대기')}</div>
+                          <div className="rounded-xl bg-white px-3 py-2.5 text-center text-slate-900">
+                            <div className="font-black text-base md:text-lg">{bracketTeamB?.label ?? (match.autoAdvance ? '자동 진출' : '대기')}</div>
                             <div className="text-xs text-slate-500 mt-1">{bracketTeamB?.members.join(' · ')}</div>
                             <div className="mt-2 text-sm font-black text-rose-600">{match.teamBScore}승</div>
                           </div>
@@ -788,13 +828,13 @@ export default function TeamWordSurvivalPage() {
                   <div className="text-4xl font-black text-rose-500">VS</div>
                   <TeamCard team={teamB} tone="rose" score={currentMatch.teamBScore} targetWins={currentMatch.targetWins} />
                 </div>
-                <div className="rounded-[2rem] bg-slate-900 text-white min-h-[230px] flex items-center justify-center p-8 text-center">
+                <div className="rounded-[2rem] bg-slate-900 text-white min-h-[170px] flex items-center justify-center p-5 text-center">
                   {stage === 'ready' && <button onClick={revealProblem} className="rounded-2xl bg-amber-300 px-8 py-4 text-xl font-black text-slate-950 hover:bg-amber-200">문제 공개 시작</button>}
-                  {(stage === 'count3' || stage === 'count2' || stage === 'count1') && <div className="text-[140px] font-black text-amber-300">{stage === 'count3' ? '3' : stage === 'count2' ? '2' : '1'}</div>}
+                  {(stage === 'count3' || stage === 'count2' || stage === 'count1') && <div className="text-[112px] md:text-[140px] font-black text-amber-300">{stage === 'count3' ? '3' : stage === 'count2' ? '2' : '1'}</div>}
                   {stage === 'problem' && (
                     <div className="space-y-4 max-w-3xl">
                       <div className="text-xs tracking-[0.4em] text-slate-300">문제</div>
-                      <div className="text-5xl font-black text-amber-200 break-keep">{activeProblem?.phrase ?? '문제 JSON을 넣어 주세요'}</div>
+                      <div className="text-3xl md:text-4xl font-black text-amber-200 break-keep">{activeProblem?.phrase ?? '문제 JSON을 넣어 주세요'}</div>
                       {activeProblem?.hint && <div className="text-sm text-slate-300">힌트: {activeProblem.hint}</div>}
                       <button onClick={() => setAnswerOpen((value) => !value)} className="px-3 py-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/20">{answerOpen ? '정답 확인 완료' : '정답 확인'}</button>
                       {answerOpen && <div className="rounded-2xl bg-white text-slate-900 px-5 py-4 text-lg font-semibold whitespace-pre-line">정답: {activeProblem?.meaning ?? '등록된 정답이 없습니다.'}</div>}
@@ -808,8 +848,11 @@ export default function TeamWordSurvivalPage() {
                 </div>
               </div>
             ) : (
-              <div className="min-h-[460px] flex items-center justify-center text-slate-500">다음 경기를 준비 중입니다.</div>
-            )}          </div>
+              <div className="min-h-[340px] flex items-center justify-center text-slate-500">다음 경기를 준비 중입니다.</div>
+            )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -820,10 +863,10 @@ function TeamCard({ team, tone, score, targetWins }: { team: Team; tone: 'blue' 
   const color = tone === 'blue' ? 'border-blue-200 bg-blue-50' : 'border-rose-200 bg-rose-50';
   const scoreColor = tone === 'blue' ? 'bg-blue-600' : 'bg-rose-600';
   return (
-    <div className={`rounded-[1.75rem] border px-6 py-10 ${color}`}>
+    <div className={`rounded-[1.75rem] border px-4 py-6 ${color}`}>
       <div className="text-sm font-semibold text-slate-500">{team.label}</div>
-      <div className="text-4xl md:text-6xl font-black text-slate-900 mt-3 break-keep">{team.members.join(' · ')}</div>
-      <div className="mt-5 flex justify-center gap-2" aria-label={`${team.label} 점수 ${score}점`}>
+      <div className="mt-3 text-3xl md:text-4xl font-black text-slate-900 break-keep">{team.members.join(' · ')}</div>
+      <div className="mt-3 flex justify-center gap-2" aria-label={`${team.label} 점수 ${score}점`}>
         {Array.from({ length: targetWins }, (_, index) => (
           <span key={index} className={`h-3 w-10 rounded-full ${index < score ? scoreColor : 'bg-white border border-slate-300'}`} />
         ))}

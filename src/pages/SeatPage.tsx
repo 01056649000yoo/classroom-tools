@@ -726,6 +726,13 @@ export default function SeatPage() {
     }
   }
 
+  async function deleteHistoryEntry(e: React.MouseEvent, hid: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm('이 자리배치 기록을 삭제할까요?')) return;
+    await db.history.delete(hid);
+  }
+
   return (
     <div>
       <h1 className="text-xl font-bold text-slate-800 mb-4">자리 배치</h1>
@@ -1117,18 +1124,27 @@ export default function SeatPage() {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {seatHistory.map((h) => (
-                <Link
-                  key={h.id}
-                  to={`/classes/${classId}/seat-history/${h.id}`}
-                  className="block p-3 bg-white border border-slate-200 rounded-md hover:border-slate-900 hover:shadow-sm transition"
-                >
-                  <div className="text-xs text-slate-500 tabular-nums mb-0.5">
-                    {formatDateTime(h.createdAt)}
-                  </div>
-                  <div className="text-sm font-medium text-slate-800 truncate">
-                    {h.title}
-                  </div>
-                </Link>
+                <div key={h.id} className="relative group">
+                  <Link
+                    to={`/classes/${classId}/seat-history/${h.id}`}
+                    className="block p-3 bg-white border border-slate-200 rounded-md hover:border-slate-900 hover:shadow-sm transition"
+                  >
+                    <div className="text-xs text-slate-500 tabular-nums mb-0.5">
+                      {formatDateTime(h.createdAt)}
+                    </div>
+                    <div className="text-sm font-medium text-slate-800 pr-6 truncate">
+                      {h.title}
+                    </div>
+                  </Link>
+                  <button
+                    onClick={(e) => deleteHistoryEntry(e, h.id!)}
+                    title="기록 삭제"
+                    aria-label="삭제"
+                    className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-slate-300 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition"
+                  >
+                    ×
+                  </button>
+                </div>
               ))}
             </div>
           </section>

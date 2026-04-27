@@ -39,6 +39,15 @@ type RoundMatch = {
   winnerId: number | null;
   idiomIndex: number | null;
   autoAdvance: boolean;
+  playerAScore: number;
+  playerBScore: number;
+  totalSets: 1 | 3 | 5;
+  targetWins: 1 | 2 | 3;
+};
+
+type MatchRule = {
+  totalSets: 1 | 3 | 5;
+  targetWins: 1 | 2 | 3;
 };
 
 type BattlePayload = {
@@ -46,6 +55,7 @@ type BattlePayload = {
   classId: number;
   participantIds: number[];
   matches: RoundMatch[];
+  matchRule: MatchRule;
   currentRound: number;
   status: 'in_progress' | 'completed';
   finishedAt?: number;
@@ -62,6 +72,16 @@ type StudentRecord = {
   matches: number;
   winRate: number;
 };
+
+const MATCH_RULES: MatchRule[] = [
+  { totalSets: 1, targetWins: 1 },
+  { totalSets: 3, targetWins: 2 },
+  { totalSets: 5, targetWins: 3 },
+];
+
+function matchRuleLabel(rule: MatchRule) {
+  return rule.totalSets === 1 ? '단판' : `${rule.totalSets}전 ${rule.targetWins}선승`;
+}
 
 function formatDateTime(ts: number) {
   const d = new Date(ts);
@@ -174,18 +194,20 @@ function readBattlePayload(entry: HistoryEntry): BattlePayload | null {
     ) {
       return [];
     }
-    return [
-      {
-        id: raw.id,
-        round: raw.round,
-        order: raw.order,
-        playerAId: typeof raw.playerAId === 'number' ? raw.playerAId : null,
-        playerBId: typeof raw.playerBId === 'number' ? raw.playerBId : null,
-        winnerId: typeof raw.winnerId === 'number' ? raw.winnerId : null,
-        idiomIndex: typeof raw.idiomIndex === 'number' ? raw.idiomIndex : null,
-        autoAdvance: !!raw.autoAdvance,
-      },
-    ];
+    return [{
+      id: raw.id,
+      round: raw.round,
+      order: raw.order,
+      playerAId: typeof raw.playerAId === 'number' ? raw.playerAId : null,
+      playerBId: typeof raw.playerBId === 'number' ? raw.playerBId : null,
+      winnerId: typeof raw.winnerId === 'number' ? raw.winnerId : null,
+      idiomIndex: typeof raw.idiomIndex === 'number' ? raw.idiomIndex : null,
+      autoAdvance: !!raw.autoAdvance,
+      playerAScore: typeof raw.playerAScore === 'number' ? raw.playerAScore : 0,
+      playerBScore: typeof raw.playerBScore === 'number' ? raw.playerBScore : 0,
+      totalSets: raw.totalSets === 3 ? 3 : raw.totalSets === 5 ? 5 : 1,
+      targetWins: raw.targetWins === 2 ? 2 : raw.targetWins === 3 ? 3 : 1,
+    } satisfies RoundMatch];
   });
   return {
     format: payload.format === 'word-survival/v1' ? 'word-survival/v1' : 'idiom-battle/v2',
@@ -194,6 +216,17 @@ function readBattlePayload(entry: HistoryEntry): BattlePayload | null {
       ? payload.participantIds.filter((id): id is number => typeof id === 'number')
       : [],
     matches,
+    matchRule:
+      payload.matchRule?.totalSets === 3 || payload.matchRule?.totalSets === 5
+        ? {
+            totalSets: payload.matchRule.totalSets,
+            targetWins: payload.matchRule.targetWins === 2 || payload.matchRule.targetWins === 3
+              ? payload.matchRule.targetWins
+              : payload.matchRule.totalSets === 3
+                ? 2
+                : 3,
+          }
+        : { totalSets: 1, targetWins: 1 },
     currentRound: typeof payload.currentRound === 'number' ? payload.currentRound : 0,
     status: payload.status === 'completed' ? 'completed' : 'in_progress',
     finishedAt: typeof payload.finishedAt === 'number' ? payload.finishedAt : undefined,
@@ -259,6 +292,7 @@ function createRoundMatches(
   participantIds: number[],
   round: number,
   idiomCount: number,
+  rule: MatchRule,
 ): RoundMatch[] {
   const idiomIndices = pickIdiomIndices(Math.ceil(participantIds.length / 2), idiomCount);
   const matches: RoundMatch[] = [];
@@ -276,6 +310,10 @@ function createRoundMatches(
       winnerId: autoAdvance ? playerAId : null,
       idiomIndex: idiomIndices[Math.floor(i / 2)] ?? null,
       autoAdvance,
+      playerAScore: autoAdvance ? rule.targetWins : 0,
+      playerBScore: 0,
+      totalSets: rule.totalSets,
+      targetWins: rule.targetWins,
     });
   }
 
@@ -338,6 +376,7 @@ export default function IdiomBattlePage() {
   const [selectedProblemPackId, setSelectedProblemPackId] = useState('idiom');
   const [rangeStart, setRangeStart] = useState(1);
   const [rangeEnd, setRangeEnd] = useState<number | null>(null);
+  const [matchRule, setMatchRule] = useState<MatchRule>(MATCH_RULES[0]);
   const selectedSavedPack = savedProblemPacks.find((pack) => pack.id === selectedProblemPackId);
   const problems = selectedSavedPack?.problems
     ?? (selectedProblemPackId === 'proverb' ? proverbProblems
@@ -530,6 +569,7 @@ export default function IdiomBattlePage() {
       classId: nextSession.classId,
       participantIds: nextSession.participantIds,
       matches: nextSession.matches,
+      matchRule: nextSession.matchRule,
       currentRound: nextSession.currentRound,
       status: nextSession.status,
       finishedAt: nextSession.finishedAt,
@@ -626,15 +666,16 @@ export default function IdiomBattlePage() {
     }
 
     const seed = createSeed(eligibleStudents);
-    const firstRoundMatches = createRoundMatches(seed, 0, slicedProblems.length);
-    const nextSession: BattleSession = {
-      format: 'word-survival/v1',
-      classId,
-      participantIds: seed,
-      matches: firstRoundMatches,
-      currentRound: 0,
-      status: 'in_progress',
-      historyId: null,
+      const firstRoundMatches = createRoundMatches(seed, 0, slicedProblems.length, matchRule);
+      const nextSession: BattleSession = {
+        format: 'word-survival/v1',
+        classId,
+        participantIds: seed,
+        matches: firstRoundMatches,
+        matchRule,
+        currentRound: 0,
+        status: 'in_progress',
+        historyId: null,
       createdAt: Date.now(),
     };
 
@@ -706,9 +747,24 @@ export default function IdiomBattlePage() {
   async function chooseWinner(winnerId: number) {
     if (!session || !currentMatch) return;
 
-    const updatedMatches = session.matches.map((match) =>
-      match.id === currentMatch.id ? { ...match, winnerId } : { ...match },
-    );
+    const updatedMatches = session.matches.map((match) => {
+      if (match.id !== currentMatch.id) return { ...match };
+      const playerAScore = match.playerAScore + (winnerId === match.playerAId ? 1 : 0);
+      const playerBScore = match.playerBScore + (winnerId === match.playerBId ? 1 : 0);
+      const finalWinnerId =
+        playerAScore >= match.targetWins
+          ? match.playerAId
+          : playerBScore >= match.targetWins
+            ? match.playerBId
+            : null;
+      return {
+        ...match,
+        playerAScore,
+        playerBScore,
+        winnerId: finalWinnerId,
+        idiomIndex: finalWinnerId == null ? pickNextIdiomIndex(match.idiomIndex) : match.idiomIndex,
+      };
+    });
     const currentRoundDone = updatedMatches
       .filter((match) => match.round === session.currentRound)
       .every((match) => match.winnerId != null);
@@ -732,7 +788,7 @@ export default function IdiomBattlePage() {
         };
       } else {
         const nextRound = session.currentRound + 1;
-        const nextRoundMatches = createRoundMatches(winners, nextRound, slicedProblems.length);
+        const nextRoundMatches = createRoundMatches(winners, nextRound, slicedProblems.length, session.matchRule);
         nextSession = {
           ...session,
           matches: [...updatedMatches, ...nextRoundMatches],
@@ -747,6 +803,9 @@ export default function IdiomBattlePage() {
     setAnswerOpen(false);
     if (currentRoundDone) {
       setRoundTransitionKey((value) => value + 1);
+    } else {
+      setStage('intro');
+      setQuestionReplayKey((value) => value + 1);
     }
   }
 
@@ -948,7 +1007,7 @@ export default function IdiomBattlePage() {
       )}
 
       <section className="p-4 bg-white border border-slate-200 rounded-2xl">
-        <div className="grid gap-4 lg:grid-cols-[1.5fr,1fr] items-end">
+        <div className="grid gap-4 lg:grid-cols-[1.1fr,0.9fr,auto] items-end">
           <div>
             <label className="block text-sm text-slate-600 mb-2">학급 선택</label>
             <select
@@ -966,6 +1025,22 @@ export default function IdiomBattlePage() {
             <div className="mt-2 text-xs text-slate-500">
               등록 학생 {studentList.length}명 · 최근 서바이벌 기록 {survivalHistories.length}개
             </div>
+          </div>
+          <div>
+            <label className="block text-sm text-slate-600 mb-2">승부 방식</label>
+            <select
+              value={matchRule.totalSets}
+              onChange={(e) => {
+                const nextRule = MATCH_RULES.find((rule) => rule.totalSets === Number(e.target.value));
+                if (nextRule) setMatchRule(nextRule);
+              }}
+              className="w-full px-3 py-2 rounded-md border border-slate-300 bg-white focus:outline-none focus:border-slate-500"
+            >
+              {MATCH_RULES.map((rule) => (
+                <option key={rule.totalSets} value={rule.totalSets}>{matchRuleLabel(rule)}</option>
+              ))}
+            </select>
+            <div className="mt-2 text-xs text-slate-500">한 대진에서 먼저 {matchRule.targetWins}승</div>
           </div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
             {resumeCandidate && (
@@ -1244,7 +1319,7 @@ export default function IdiomBattlePage() {
           />
           <div className="relative w-full max-w-5xl rounded-[2rem] bg-white shadow-2xl overflow-hidden animate-modalRise">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.22),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(244,63,94,0.18),_transparent_35%)]" />
-            <div className="relative p-6 md:p-8">
+            <div className="relative p-5 md:p-6">
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
                   <div className="text-xs tracking-[0.35em] text-slate-400 uppercase">
@@ -1259,11 +1334,11 @@ export default function IdiomBattlePage() {
                           ? '서바이벌 종료'
                           : '다음 경기 준비 중'}
                   </div>
-                  <div className="text-sm text-slate-500 mt-1">
-                    {modalPhase === 'bracket' && session.status !== 'completed'
-                      ? '전체 대진을 확인한 뒤 순서대로 게임을 시작합니다.'
-                      : currentMatch
-                        ? `단계: ${stageLabel(stage)}`
+                      <div className="text-sm text-slate-500 mt-1">
+                        {modalPhase === 'bracket' && session.status !== 'completed'
+                          ? '전체 대진을 확인한 뒤 순서대로 게임을 시작합니다.'
+                          : currentMatch
+                        ? `${matchRuleLabel(currentMatch)} · ${currentMatch.playerAScore} : ${currentMatch.playerBScore} · 단계: ${stageLabel(stage)}`
                         : '승자 선택 직후 다음 경기로 자동 이동합니다.'}
                   </div>
                 </div>
@@ -1276,13 +1351,13 @@ export default function IdiomBattlePage() {
               </div>
 
               {modalPhase === 'bracket' && session.status !== 'completed' && (
-                <div className="min-h-[520px] flex flex-col gap-6">
-                  <div className="rounded-[2rem] bg-slate-950 text-white p-6 md:p-8 overflow-hidden relative">
+                <div className="min-h-[420px] flex flex-col gap-4">
+                  <div className="rounded-[2rem] bg-slate-950 text-white p-5 md:p-6 overflow-hidden relative">
                     <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-amber-300/20 blur-3xl" />
                     <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-rose-400/20 blur-3xl" />
                     <div className="relative text-center mb-6">
                       <div className="text-xs tracking-[0.35em] text-amber-200">LADDER BRACKET</div>
-                      <div className="text-4xl md:text-5xl font-black mt-2">{currentRoundName}</div>
+                      <div className="text-3xl md:text-4xl font-black mt-2">{currentRoundName}</div>
                       <div className="text-sm text-slate-300 mt-2">위에서 아래 순서대로 경기가 진행됩니다.</div>
                     </div>
                     <div className="relative grid gap-3">
@@ -1293,11 +1368,11 @@ export default function IdiomBattlePage() {
                         return (
                           <div
                             key={match.id}
-                            className={`grid grid-cols-[1fr,70px,1fr] items-center gap-2 md:gap-4 rounded-2xl border px-3 py-3 md:px-5 md:py-4 ${
+                            className={`grid grid-cols-[1fr,70px,1fr] items-center gap-2 md:gap-3 rounded-2xl border px-3 py-2.5 md:px-4 md:py-3 ${
                               done ? 'border-emerald-300/40 bg-emerald-300/10' : 'border-white/10 bg-white/8'
                             }`}
                           >
-                            <div className="rounded-xl bg-white text-slate-900 px-3 py-3 text-center font-black text-lg md:text-2xl break-keep">
+                            <div className="rounded-xl bg-white text-slate-900 px-3 py-2.5 text-center font-black text-base md:text-xl break-keep">
                               {playerA?.name ?? '대기'}
                             </div>
                             <div className="relative h-16 flex items-center justify-center">
@@ -1307,7 +1382,7 @@ export default function IdiomBattlePage() {
                                 {match.autoAdvance ? 'PASS' : `${match.order + 1}`}
                               </div>
                             </div>
-                            <div className="rounded-xl bg-white text-slate-900 px-3 py-3 text-center font-black text-lg md:text-2xl break-keep">
+                            <div className="rounded-xl bg-white text-slate-900 px-3 py-2.5 text-center font-black text-base md:text-xl break-keep">
                               {playerB?.name ?? (match.autoAdvance ? '자동 진출' : '대기')}
                             </div>
                           </div>
@@ -1335,55 +1410,57 @@ export default function IdiomBattlePage() {
               )}
 
               {session.status === 'completed' && championId && (
-                <div className="min-h-[520px] flex flex-col items-center justify-center text-center">
+                <div className="min-h-[420px] flex flex-col items-center justify-center text-center">
                   <div className="text-sm tracking-[0.35em] text-amber-600">FINAL WINNER</div>
-                  <div className="text-[96px] leading-none mt-3">🏆</div>
-                  <div className="text-5xl md:text-6xl font-black text-slate-900 mt-4">
+                  <div className="text-[80px] leading-none mt-3">🏆</div>
+                  <div className="text-4xl md:text-5xl font-black text-slate-900 mt-4">
                     {studentMap.get(championId)?.name ?? '우승자'}
                   </div>
                 </div>
               )}
 
               {modalPhase === 'game' && session.status !== 'completed' && currentMatch && currentA && currentB && (
-                <div className="min-h-[520px] flex flex-col justify-between gap-6">
-                  <div className="grid md:grid-cols-[1fr,auto,1fr] gap-4 items-center text-center">
-                    <div className={`rounded-[1.75rem] border px-6 py-10 bg-white/90 ${stage === 'versus' || stage === 'idiom' ? 'animate-battlePulse border-blue-200' : 'border-slate-200'}`}>
-                      <div className="text-xs text-slate-400 mb-3">학생 A</div>
-                      <div className="text-5xl md:text-7xl font-black text-slate-900 break-keep animate-nameZoom">
-                        {currentA.name}
-                      </div>
-                    </div>
-                    <div className="text-3xl md:text-5xl font-black text-rose-500 animate-versusGlow">VS</div>
-                    <div className={`rounded-[1.75rem] border px-6 py-10 bg-white/90 ${stage === 'versus' || stage === 'idiom' ? 'animate-battlePulse border-rose-200' : 'border-slate-200'}`}>
-                      <div className="text-xs text-slate-400 mb-3">학생 B</div>
-                      <div className="text-5xl md:text-7xl font-black text-slate-900 break-keep animate-nameZoom">
-                        {currentB.name}
-                      </div>
+                <div className="min-h-[420px] flex flex-col justify-between gap-5">
+                <div className="grid md:grid-cols-[1fr,auto,1fr] gap-4 items-center text-center">
+                  <div className={`rounded-[1.75rem] border px-5 py-7 bg-white/90 ${stage === 'versus' || stage === 'idiom' ? 'animate-battlePulse border-blue-200' : 'border-slate-200'}`}>
+                    <div className="text-xs text-slate-400 mb-3">학생 A</div>
+                    <div className="mb-3 text-sm font-black text-blue-600">{currentMatch.playerAScore}승</div>
+                    <div className="text-4xl md:text-6xl font-black text-slate-900 break-keep animate-nameZoom">
+                      {currentA.name}
                     </div>
                   </div>
+                  <div className="text-3xl md:text-5xl font-black text-rose-500 animate-versusGlow">VS</div>
+                  <div className={`rounded-[1.75rem] border px-5 py-7 bg-white/90 ${stage === 'versus' || stage === 'idiom' ? 'animate-battlePulse border-rose-200' : 'border-slate-200'}`}>
+                    <div className="text-xs text-slate-400 mb-3">학생 B</div>
+                    <div className="mb-3 text-sm font-black text-rose-600">{currentMatch.playerBScore}승</div>
+                    <div className="text-4xl md:text-6xl font-black text-slate-900 break-keep animate-nameZoom">
+                      {currentB.name}
+                    </div>
+                  </div>
+                </div>
 
-                  <div className="rounded-[2rem] bg-slate-900 text-white p-8 text-center min-h-[220px] flex items-center justify-center relative overflow-hidden">
+                  <div className="rounded-[2rem] bg-slate-900 text-white p-6 text-center min-h-[180px] flex items-center justify-center relative overflow-hidden">
                     <div className="absolute inset-0 bg-[radial-gradient(circle,_rgba(251,191,36,0.18),_transparent_45%)] animate-slowPulse" />
                     {stage === 'intro' && (
                       <div className="relative space-y-3 animate-fadeUp">
                         <div className="text-sm tracking-[0.35em] text-slate-300">MATCH READY</div>
-                        <div className="text-3xl md:text-4xl font-black">곧 경기가 시작됩니다</div>
+                        <div className="text-2xl md:text-3xl font-black">곧 경기가 시작됩니다</div>
                       </div>
                     )}
                     {stage === 'versus' && (
-                      <div className="relative text-5xl md:text-7xl font-black animate-fadeUp">
+                      <div className="relative text-4xl md:text-6xl font-black animate-fadeUp">
                         {currentA.name} vs {currentB.name}
                       </div>
                     )}
                     {(stage === 'count3' || stage === 'count2' || stage === 'count1') && (
-                      <div className="relative text-[120px] md:text-[180px] leading-none font-black text-amber-300 animate-countBeat">
+                      <div className="relative text-[96px] md:text-[144px] leading-none font-black text-amber-300 animate-countBeat">
                         {stage === 'count3' ? '3' : stage === 'count2' ? '2' : '1'}
                       </div>
                     )}
                     {stage === 'idiom' && (
                       <div className="relative w-full max-w-3xl space-y-4 animate-fadeUp">
                         <div className="text-xs tracking-[0.4em] text-slate-300">문제</div>
-                        <div className="text-5xl md:text-7xl font-black break-keep text-amber-200">
+                        <div className="text-4xl md:text-6xl font-black break-keep text-amber-200">
                           {activeIdiom?.phrase ?? '문제 JSON 데이터를 넣어 주세요'}
                         </div>
                         {activeIdiom?.hint && (
@@ -1398,7 +1475,7 @@ export default function IdiomBattlePage() {
                           </button>
                         </div>
                         {answerOpen && (
-                          <div className="rounded-2xl bg-white text-slate-900 px-5 py-4 text-lg font-semibold whitespace-pre-line">
+                          <div className="rounded-2xl bg-white text-slate-900 px-5 py-4 text-base md:text-lg font-semibold whitespace-pre-line">
                             정답: {activeIdiom?.meaning ?? '아직 등록된 정답이 없습니다.'}
                           </div>
                         )}

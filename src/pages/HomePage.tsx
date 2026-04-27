@@ -29,6 +29,12 @@ const tools = [
     title: '단어 서바이벌(팀전)',
     desc: '최근 자리배치의 짝을 팀으로 묶어 팀 대결을 진행합니다.',
   },
+  {
+    to: '/cooperative-speed-quiz',
+    emoji: '⚡',
+    title: '협동 스피드 퀴즈',
+    desc: '짝별로 설명자와 정답자를 나눠 스피드 퀴즈를 진행하고 팀 순위를 매깁니다.',
+  },
 ];
 
 export default function HomePage() {
@@ -173,21 +179,21 @@ export default function HomePage() {
 
       <section>
         <h2 className="text-base font-semibold text-slate-800 mb-3">도구</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
           {tools.map((t) => (
             <Link
               key={t.to}
               to={t.to}
-              className="group relative min-h-[148px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-slate-900 hover:shadow-sm"
+              className="group relative min-h-[124px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-900 hover:shadow-sm"
             >
-              <div className="absolute -right-12 -top-12 h-28 w-28 rounded-full bg-slate-100 transition group-hover:bg-amber-100" />
-              <div className="relative flex h-full flex-col justify-between">
+              <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full bg-slate-100 transition group-hover:bg-amber-100" />
+              <div className="relative flex h-full flex-col justify-between gap-3">
                 <div>
-                  <div className="text-3xl mb-3">{t.emoji}</div>
+                  <div className="mb-2 text-2xl">{t.emoji}</div>
                   <div className="font-semibold text-slate-800">{t.title}</div>
-                  <div className="text-sm text-slate-500 mt-1 leading-5">{t.desc}</div>
+                  <div className="mt-1 text-sm leading-5 text-slate-500">{t.desc}</div>
                 </div>
-                <div className="mt-4 text-xs font-semibold text-slate-400 group-hover:text-slate-700">
+                <div className="text-xs font-semibold text-slate-400 group-hover:text-slate-700">
                   바로가기 →
                 </div>
               </div>
