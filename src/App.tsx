@@ -193,12 +193,18 @@ export default function App() {
                         최근 자리배치의 좌우 짝을 한 팀으로 묶어 대결합니다. 그래서 팀전을 하기 전에는 먼저
                         자리배치를 실행해 두는 것이 좋습니다.
                       </p>
+                      <p className="mt-2 text-sm leading-6 font-semibold text-slate-700">
+                        팀 활동은 최근 자리배치 결과가 있어야 시작할 수 있습니다.
+                      </p>
                     </div>
                     <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
                       <div className="text-base font-black text-slate-900">협동 스피드 퀴즈</div>
                       <p className="mt-2 text-sm leading-6 text-slate-600">
                         최근 자리배치의 짝을 그대로 팀으로 사용합니다. 한 명은 설명하고 한 명은 화면을 보지
                         않은 채 답을 맞히며, 제한시간 안에 맞힌 문제 수로 순위를 정합니다.
+                      </p>
+                      <p className="mt-2 text-sm leading-6 font-semibold text-slate-700">
+                        협동 스피드 퀴즈도 자리배치를 먼저 저장해야 팀이 만들어집니다.
                       </p>
                     </div>
                   </div>
