@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, NavLink, Route, Routes } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ClassDetailPage from './pages/ClassDetailPage';
@@ -21,6 +22,8 @@ const navItems = [
 ];
 
 export default function App() {
+  const [helpOpen, setHelpOpen] = useState(false);
+
   return (
     <div className="min-h-full lg:flex">
       <aside className="border-b border-slate-200 bg-white lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r lg:bg-[linear-gradient(180deg,#fffdf8_0%,#f8fafc_32%,#f8fafc_100%)]">
@@ -32,9 +35,9 @@ export default function App() {
                 문해력 서바이벌
               </Link>
               <p className="mt-2 text-[13px] leading-5 text-slate-500">
-                수업 중 바로 꺼내 쓰기 좋은
+                초등 문해력
                 <br className="hidden lg:block" />
-                학급 운영 도구 모음
+                수업 도구 모음
               </p>
             </div>
           </div>
@@ -57,6 +60,14 @@ export default function App() {
               </NavLink>
             ))}
           </nav>
+
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="rounded-[1.2rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white hover:text-slate-900"
+          >
+            이 앱 사용법 보기
+          </button>
 
           <a
             href="https://www.xn--vz0ba242ncqcba79xhwx.site/"
@@ -113,6 +124,102 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {helpOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="사용법 닫기"
+            onClick={() => setHelpOpen(false)}
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+          />
+          <div className="relative flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <div className="border-b border-slate-200 px-5 py-4 md:px-7">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-xs font-black tracking-[0.28em] text-amber-600">GUIDE</div>
+                  <h2 className="mt-2 text-2xl font-black text-slate-900">문해력 서바이벌 사용법</h2>
+                  <p className="mt-2 text-sm text-slate-500">
+                    자리배치 결과를 바탕으로 역할 배치와 게임을 이어서 운영하는 흐름입니다.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setHelpOpen(false)}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto px-5 py-5 md:px-7 md:py-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+                  <h3 className="text-lg font-black text-slate-900">1. 자리배치</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    학급을 만든 뒤 학생 명단을 불러오고 자리배치를 실행합니다. 최근 자리배치 결과는 이후
+                    역할 배치, 팀전, 협동 스피드 퀴즈에서 공통 기준으로 사용됩니다.
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    특히 좌우로 붙어 있는 짝 정보가 저장되므로 팀 활동을 할 때 바로 활용할 수 있습니다.
+                  </p>
+                </section>
+
+                <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+                  <h3 className="text-lg font-black text-slate-900">2. 역할 배치</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    자리배치에 등록된 학급 학생을 바탕으로 발표, 기록, 준비물, 정리 같은 역할을 무작위로
+                    배정합니다.
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    역할 수와 인원을 맞춰 두면 자동으로 배정되고, 결과는 기록으로 남겨 다시 확인할 수 있습니다.
+                  </p>
+                </section>
+
+                <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm md:col-span-2">
+                  <h3 className="text-lg font-black text-slate-900">3. 자리배치 결과를 활용하는 게임들</h3>
+                  <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                    <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+                      <div className="text-base font-black text-slate-900">단어 서바이벌 개인전</div>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        선택한 학급의 학생 전체를 대상으로 개인 토너먼트를 진행합니다. 자리배치 짝을 직접
+                        쓰지는 않지만, 같은 학급 명단과 기록 흐름을 이어서 활용합니다.
+                      </p>
+                    </div>
+                    <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+                      <div className="text-base font-black text-slate-900">단어 서바이벌 팀전</div>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        최근 자리배치의 좌우 짝을 한 팀으로 묶어 대결합니다. 그래서 팀전을 하기 전에는 먼저
+                        자리배치를 실행해 두는 것이 좋습니다.
+                      </p>
+                    </div>
+                    <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+                      <div className="text-base font-black text-slate-900">협동 스피드 퀴즈</div>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        최근 자리배치의 짝을 그대로 팀으로 사용합니다. 한 명은 설명하고 한 명은 화면을 보지
+                        않은 채 답을 맞히며, 제한시간 안에 맞힌 문제 수로 순위를 정합니다.
+                      </p>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-[1.5rem] border border-amber-200 bg-amber-50 p-4 md:col-span-2">
+                  <h3 className="text-lg font-black text-slate-900">추천 운영 순서</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">
+                    학급 만들기 → 자리배치 실행 → 필요하면 역할 배치 실행 → 개인전 또는 팀전 진행 →
+                    협동 스피드 퀴즈로 짝 활동 마무리.
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">
+                    팀전과 협동 스피드 퀴즈는 최근 자리배치 결과를 바로 사용하므로, 자리를 새로 바꿨다면
+                    게임 시작 전에 자리배치를 한 번 더 저장해 두면 가장 자연스럽게 연결됩니다.
+                  </p>
+                </section>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
