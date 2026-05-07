@@ -239,7 +239,9 @@ export default function RoleAssignmentPage() {
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const boardRef = useRef<HTMLDivElement>(null);
   const ballHomeRef = useRef<HTMLDivElement>(null);
+  const loadedRoleClassRef = useRef<number | null>(null);
   const skipNextRoleSaveRef = useRef(false);
+  const lastRoleSignatureRef = useRef('');
 
   const studentList = students ?? [];
   const roleSlots = useMemo(() => buildRoleSlots(roleGroups), [roleGroups]);
@@ -254,26 +256,64 @@ export default function RoleAssignmentPage() {
   }, [classId, classes]);
 
   useEffect(() => {
+    loadedRoleClassRef.current = null;
+    lastRoleSignatureRef.current = '';
+  }, [classId]);
+
+  useEffect(() => {
     if (classId == null) {
       skipNextRoleSaveRef.current = true;
       setRoleGroups([]);
       resetResult();
       return;
     }
+    if (!classInfo) return;
+    if (loadedRoleClassRef.current === classId) return;
+
+    const hasStoredRoleGroups = Array.isArray(classInfo.roleSettings?.roleGroups);
+    const storedRoles = hasStoredRoleGroups
+      ? normalizeStoredRoles(classInfo.roleSettings?.roleGroups)
+      : readStoredRoles(classId);
+    const signature = JSON.stringify(storedRoles);
 
     skipNextRoleSaveRef.current = true;
-    setRoleGroups(readStoredRoles(classId));
+    loadedRoleClassRef.current = classId;
+    lastRoleSignatureRef.current = signature;
+    setRoleGroups(storedRoles);
     resetResult();
-  }, [classId]);
+
+    if (!hasStoredRoleGroups && storedRoles.length > 0) {
+      void db.classes.update(classId, {
+        roleSettings: {
+          ...defaultRoleSettings,
+          ...classInfo.roleSettings,
+          roleGroups: storedRoles,
+        },
+      });
+    }
+  }, [classId, classInfo]);
 
   useEffect(() => {
     if (classId == null) return;
+    if (loadedRoleClassRef.current !== classId) return;
     if (skipNextRoleSaveRef.current) {
       skipNextRoleSaveRef.current = false;
       return;
     }
-    localStorage.setItem(roleStorageKey(classId), JSON.stringify(roleGroups));
-  }, [classId, roleGroups]);
+
+    const normalizedRoles = normalizeStoredRoles(roleGroups);
+    const signature = JSON.stringify(normalizedRoles);
+    if (lastRoleSignatureRef.current === signature) return;
+    lastRoleSignatureRef.current = signature;
+
+    void db.classes.update(classId, {
+      roleSettings: {
+        ...defaultRoleSettings,
+        ...roleSettings,
+        roleGroups: normalizedRoles,
+      },
+    });
+  }, [classId, roleGroups, roleSettings]);
 
   useEffect(() => {
     return () => {

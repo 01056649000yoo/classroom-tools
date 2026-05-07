@@ -12,6 +12,7 @@ export interface RoleSettings {
   forbiddenPairs: [number, number][];
   genderBalance: 'none' | 'strict';
   avoidDuplicates: boolean;
+  roleGroups?: { id: string; name: string; count: number }[];
 }
 
 export const defaultSeatSettings: SeatSettings = {
