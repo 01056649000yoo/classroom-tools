@@ -1,29 +1,37 @@
-name: Deploy to GitHub Pages
+name: Deploy
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
-permissions:
-  contents: write
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: /Users/seunghyeonmaegmini/classroom-tools
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Pull latest main
+        run: |
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
+      - name: Build docker image
+        run: docker compose build
 
-      - run: npm ci
-      - run: npm run build
+      - name: Restart docker stack
+        run: docker compose up -d --remove-orphans
 
-      - uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          cname: survival.끄적끄적아지트.site
+      - name: Verify container
+        run: |
+          sleep 5
+          docker ps --filter "name=classroom-tools" --format "{{.Status}}"

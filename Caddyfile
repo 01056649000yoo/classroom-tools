@@ -1,15 +1,5 @@
-# 이 설정은 /etc/caddy/Caddyfile 에서 관리됩니다.
-# survival.끄적끄적아지트.site 와 :8080 모두 거기서 서빙 중.
-
-survival.xn--vz0ba242ncqcba79xhwx.site {
-	root * /Users/seunghyeonmaegmini/classroom-tools/dist
-	encode gzip zstd
-	try_files {path} /index.html
-	file_server
-}
-
 :8080 {
-	root * /Users/seunghyeonmaegmini/classroom-tools/dist
+	root * /srv
 	encode gzip zstd
 	try_files {path} /index.html
 	file_server

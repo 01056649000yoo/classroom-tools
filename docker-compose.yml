@@ -1,0 +1,18 @@
+services:
+  classroom-tools:
+    build: .
+    container_name: classroom-tools
+    ports:
+      - "8080:8080"
+    networks:
+      - supabase_default
+    restart: unless-stopped
+
+networks:
+  supabase_default:
+    external: true
+
+volumes:
+  caddy_data:
+  caddy_config:
+
