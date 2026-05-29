@@ -58,7 +58,8 @@ export interface HistoryEntry {
     | 'word-survival'
     | 'word-survival-team'
     | 'role-assignment'
-    | 'cooperative-speed-quiz';
+    | 'cooperative-speed-quiz'
+    | 'class-mission';
   title: string;
   payload: unknown;
   createdAt: number;

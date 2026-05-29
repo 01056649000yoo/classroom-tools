@@ -35,6 +35,12 @@ const tools = [
     title: '협동 스피드 퀴즈',
     desc: '짝별로 설명자와 정답자를 나눠 스피드 퀴즈를 진행하고 팀 순위를 매깁니다.',
   },
+  {
+    to: '/class-mission',
+    emoji: '🎯',
+    title: '학급 공동 미션',
+    desc: '반 전체가 하나의 팀이 되어 제한 시간 안에 목표 정답 수를 넘기는 공동 미션입니다.',
+  },
 ];
 
 export default function HomePage() {

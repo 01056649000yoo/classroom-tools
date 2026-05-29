@@ -10,6 +10,9 @@ import RoleAssignmentPage from './pages/RoleAssignmentPage';
 import RoleAssignmentHistoryPage from './pages/RoleAssignmentHistoryPage';
 import SettingsPage from './pages/SettingsPage';
 import CooperativeSpeedQuizPage from './pages/CooperativeSpeedQuizPage';
+import ClassMissionPage from './pages/ClassMissionPage';
+
+declare const __APP_COMMIT__: string;
 
 const navItems = [
   { to: '/', label: '홈', end: true },
@@ -18,11 +21,13 @@ const navItems = [
   { to: '/word-survival', label: '단어 서바이벌(개인전)' },
   { to: '/word-survival-team', label: '단어 서바이벌(팀전)' },
   { to: '/cooperative-speed-quiz', label: '협동 스피드 퀴즈' },
+  { to: '/class-mission', label: '학급 공동 미션' },
   { to: '/settings', label: '설정' },
 ];
 
 export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
+  const commitHash = __APP_COMMIT__;
 
   return (
     <div className="min-h-full lg:flex">
@@ -103,14 +108,15 @@ export default function App() {
             <Route path="/word-survival" element={<IdiomBattlePage />} />
             <Route path="/word-survival-team" element={<TeamWordSurvivalPage />} />
             <Route path="/cooperative-speed-quiz" element={<CooperativeSpeedQuizPage />} />
+            <Route path="/class-mission" element={<ClassMissionPage />} />
             <Route path="/idiom-battle" element={<IdiomBattlePage />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
         </main>
       </div>
       <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 text-xs text-slate-500 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur no-print">
-        <div className="mx-auto max-w-7xl px-4 py-2.5">
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center">
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-2.5 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center md:justify-start md:text-left">
             <p>
               운영책임자: 유쌤
               <span className="mx-2 text-slate-300">•</span>
@@ -121,6 +127,11 @@ export default function App() {
             </p>
             <p>© 2026 끄적끄적 아지트. All rights reserved.</p>
             <p className="text-[11px] text-slate-400">모든 데이터는 사용자의 브라우저에만 저장됩니다.</p>
+          </div>
+          <div className="flex justify-center md:justify-end">
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[11px] text-slate-500">
+              commit {commitHash}
+            </span>
           </div>
         </div>
       </footer>
