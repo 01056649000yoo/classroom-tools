@@ -73,7 +73,7 @@ export default function App() {
             href="https://www.xn--vz0ba242ncqcba79xhwx.site/"
             target="_blank"
             rel="noreferrer"
-            className="hidden overflow-hidden rounded-[1.5rem] border border-amber-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-[0_16px_32px_rgba(245,158,11,0.18)] md:block lg:mt-auto"
+            className="mt-2 hidden overflow-hidden rounded-[1.5rem] border border-amber-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-[0_16px_32px_rgba(245,158,11,0.18)] md:block lg:mt-5"
             aria-label="끄적끄적 아지트 바로가기"
           >
             <img

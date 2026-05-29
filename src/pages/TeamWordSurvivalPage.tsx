@@ -755,7 +755,7 @@ export default function TeamWordSurvivalPage() {
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button className="absolute inset-0 bg-slate-950/70" onClick={() => setModalOpen(false)} aria-label="닫기" />
-          <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl animate-modalRise">
+          <div className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl animate-modalRise">
             <div className="relative flex min-h-0 flex-1 flex-col">
               <div className="shrink-0 p-5 pb-4 md:p-6 md:pb-5">
                 <div className="flex items-start justify-between gap-4">

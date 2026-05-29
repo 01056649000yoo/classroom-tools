@@ -876,7 +876,7 @@ export default function IdiomBattlePage() {
                   onChange={(e) => selectProblemPack(e.target.value)}
                   className="flex-1 min-w-0 px-2 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-slate-400"
                 >
-                  <option value="idiom">사자성어 기본팩</option>
+                  <option value="idiom">사자성어 기본팩(문장완성)</option>
                   <option value="idiom-initials">사자성어 기본팩(초성)</option>
                   <option value="idiom-meaning-quiz">사자성어 기본팩(사자성어 맞추기)</option>
                   <option value="proverb">속담 기본팩</option>
@@ -1317,10 +1317,11 @@ export default function IdiomBattlePage() {
             onClick={() => setModalOpen(false)}
             aria-label="모달 닫기"
           />
-          <div className="relative w-full max-w-5xl rounded-[2rem] bg-white shadow-2xl overflow-hidden animate-modalRise">
+          <div className="relative flex max-h-[calc(100dvh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl animate-modalRise">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.22),_transparent_35%),radial-gradient(circle_at_bottom_right,_rgba(244,63,94,0.18),_transparent_35%)]" />
-            <div className="relative p-5 md:p-6">
-              <div className="flex items-start justify-between gap-4 mb-6">
+            <div className="relative flex min-h-0 flex-1 flex-col">
+              <div className="shrink-0 p-5 pb-4 md:p-6 md:pb-5">
+                <div className="flex items-start justify-between gap-4 mb-6">
                 <div>
                   <div className="text-xs tracking-[0.35em] text-slate-400 uppercase">
                     {currentRoundName || '서바이벌'}
@@ -1348,7 +1349,10 @@ export default function IdiomBattlePage() {
                 >
                   닫기
                 </button>
+                </div>
               </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 md:px-6 md:pb-6">
 
               {modalPhase === 'bracket' && session.status !== 'completed' && (
                 <div className="min-h-[420px] flex flex-col gap-4">
@@ -1458,9 +1462,9 @@ export default function IdiomBattlePage() {
                       </div>
                     )}
                     {stage === 'idiom' && (
-                      <div className="relative w-full max-w-3xl space-y-4 animate-fadeUp">
+                      <div className="relative w-full max-w-4xl space-y-5 animate-fadeUp">
                         <div className="text-xs tracking-[0.4em] text-slate-300">문제</div>
-                        <div className="text-4xl md:text-6xl font-black break-keep text-amber-200">
+                        <div className="text-3xl leading-relaxed md:text-5xl md:leading-[1.45] font-black break-keep text-amber-200">
                           {activeIdiom?.phrase ?? '문제 JSON 데이터를 넣어 주세요'}
                         </div>
                         {activeIdiom?.hint && (
@@ -1475,7 +1479,7 @@ export default function IdiomBattlePage() {
                           </button>
                         </div>
                         {answerOpen && (
-                          <div className="rounded-2xl bg-white text-slate-900 px-5 py-4 text-base md:text-lg font-semibold whitespace-pre-line">
+                          <div className="rounded-2xl bg-white text-slate-900 px-5 py-4 text-base leading-7 md:text-lg md:leading-8 font-semibold whitespace-pre-line">
                             정답: {activeIdiom?.meaning ?? '아직 등록된 정답이 없습니다.'}
                           </div>
                         )}
@@ -1508,6 +1512,7 @@ export default function IdiomBattlePage() {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
         </div>
