@@ -231,47 +231,63 @@ export default function App() {
                 </section>
 
                 <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm md:col-span-2">
-                  <h3 className="text-lg font-black text-slate-900">3. 자리배치 결과를 활용하는 게임들</h3>
-                  <div className="mt-3 grid gap-3 lg:grid-cols-3">
+                  <h3 className="text-lg font-black text-slate-900">3. 자리배치 결과를 활용하는 게임 및 활동</h3>
+                  <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
                       <div className="text-base font-black text-slate-900">단어 서바이벌 개인전</div>
                       <p className="mt-2 text-sm leading-6 text-slate-600">
-                        선택한 학급의 학생 전체를 대상으로 개인 토너먼트를 진행합니다. 자리배치 짝을 직접
-                        쓰지는 않지만, 같은 학급 명단과 기록 흐름을 이어서 활용합니다.
+                        학급 전체를 대상으로 토너먼트를 진행합니다. 전체 학생 명단과 퀴즈 데이터를 활용해 개인 실력을 겨룹니다.
                       </p>
                     </div>
                     <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
                       <div className="text-base font-black text-slate-900">단어 서바이벌 팀전</div>
                       <p className="mt-2 text-sm leading-6 text-slate-600">
-                        최근 자리배치의 좌우 짝을 한 팀으로 묶어 대결합니다. 그래서 팀전을 하기 전에는 먼저
-                        자리배치를 실행해 두는 것이 좋습니다.
+                        최근 자리배치의 좌우 짝을 한 팀으로 자동 지정해 박진감 넘치는 팀전 대결을 진행합니다.
                       </p>
                       <p className="mt-2 text-sm leading-6 font-semibold text-slate-700">
-                        팀 활동은 최근 자리배치 결과가 있어야 시작할 수 있습니다.
+                        시작 전 자리배치 저장이 필요합니다.
                       </p>
                     </div>
                     <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
                       <div className="text-base font-black text-slate-900">협동 스피드 퀴즈</div>
                       <p className="mt-2 text-sm leading-6 text-slate-600">
-                        최근 자리배치의 짝을 그대로 팀으로 사용합니다. 한 명은 설명하고 한 명은 화면을 보지
-                        않은 채 답을 맞히며, 제한시간 안에 맞힌 문제 수로 순위를 정합니다.
+                        최근 자리배치 짝을 팀으로 사용합니다. 설명하는 사람과 맞히는 사람으로 나뉘어 순위 경쟁을 펼칩니다.
                       </p>
                       <p className="mt-2 text-sm leading-6 font-semibold text-slate-700">
-                        협동 스피드 퀴즈도 자리배치를 먼저 저장해야 팀이 만들어집니다.
+                        짝 매칭을 위해 자리배치 저장이 필요합니다.
                       </p>
                     </div>
+                    <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+                      <div className="text-base font-black text-slate-900">학급 공동 미션</div>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">
+                        학급 전체가 실시간으로 힘을 모아 하나의 퀴즈 세트를 함께 해결하며 공동의 성공 기준을 달성하는 협동 활동입니다.
+                      </p>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+                  <h3 className="text-lg font-black text-slate-900">4. 설정 및 문제팩 A4 인쇄</h3>
+                  <div className="mt-2 text-sm leading-6 text-slate-600 space-y-2">
+                    <p>
+                      설정 페이지에서는 학습용 단어 문제팩을 직접 커스텀 생성 및 관리할 수 있으며, 
+                      <strong> A4 시험지 크기로 즉시 출력(인쇄)</strong>할 수 있는 프리뷰 기능을 지원합니다.
+                    </p>
+                    <p>
+                      출력 시 <strong>원하는 출력 범위(시작 ~ 끝 문항 번호)를 수치로 직접 지정</strong>할 수 있어, 
+                      전체 문항 중 특정 범위만 선택하여 알뜰하게 학습지로 인쇄해 사용할 수 있습니다.
+                    </p>
                   </div>
                 </section>
 
                 <section className="rounded-[1.5rem] border border-amber-200 bg-amber-50 p-4 md:col-span-2">
                   <h3 className="text-lg font-black text-slate-900">추천 운영 순서</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-700">
-                    학급 만들기 → 자리배치 실행 → 필요하면 역할 배치 실행 → 개인전 또는 팀전 진행 →
-                    협동 스피드 퀴즈로 짝 활동 마무리.
+                    학급 등록 → 자리배치 실행 → 필요시 역할 배치 → 설정에서 문제팩 생성 및 원하는 문항 범위 A4로 학습지 출력 → 개인전, 팀전 및 학급 공동 미션 수행 → 협동 스피드 퀴즈로 짝 활동 마무리.
                   </p>
                   <p className="mt-2 text-sm leading-6 text-slate-700">
-                    팀전과 협동 스피드 퀴즈는 최근 자리배치 결과를 바로 사용하므로, 자리를 새로 바꿨다면
-                    게임 시작 전에 자리배치를 한 번 더 저장해 두면 가장 자연스럽게 연결됩니다.
+                    다양한 게임과 활동들은 최근 자리배치 결과를 실시간 기반으로 사용하므로, 
+                    자리를 바꾼 뒤에는 반드시 <strong>자리배치를 다시 한번 저장</strong>해 주어야 자연스럽게 자동 연동됩니다.
                   </p>
                 </section>
               </div>
