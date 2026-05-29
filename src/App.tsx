@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, NavLink, Route, Routes } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ClassDetailPage from './pages/ClassDetailPage';
@@ -27,7 +27,49 @@ const navItems = [
 
 export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
-  const commitHash = __APP_COMMIT__;
+  const [commitHash, setCommitHash] = useState(__APP_COMMIT__);
+
+  useEffect(() => {
+    const isLocalDevServer =
+      typeof window !== 'undefined' &&
+      ['localhost', '127.0.0.1'].includes(window.location.hostname) &&
+      window.location.port === '5173';
+
+    if (!isLocalDevServer) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const syncCommitHash = async () => {
+      try {
+        const response = await fetch('/__app_commit', { cache: 'no-store' });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as { commit?: string };
+
+        if (!cancelled && payload.commit) {
+          setCommitHash(payload.commit);
+        }
+      } catch {
+        // Keep the build-time hash when the dev endpoint is unavailable.
+      }
+    };
+
+    void syncCommitHash();
+
+    const interval = window.setInterval(() => {
+      void syncCommitHash();
+    }, 10000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
 
   return (
     <div className="min-h-full lg:flex">

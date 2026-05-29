@@ -180,6 +180,21 @@ function formatDateTime(ts: number) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function getPackLabel(packId: MissionPackId) {
+  return PACK_OPTIONS.find((pack) => pack.id === packId)?.label ?? '문제팩';
+}
+
+function getParticipantModeLabel(mode: ParticipantMode) {
+  if (mode === 'seat') return '자리 순서';
+  if (mode === 'number') return '번호 순서';
+  return '교사 선택';
+}
+
+function getLastSuccessfulResponder(payload: MissionPayload) {
+  const successfulResults = payload.results.filter((result) => result.outcome === 'correct' && result.responder);
+  return successfulResults.length > 0 ? successfulResults[successfulResults.length - 1].responder : null;
+}
+
 function renderPhraseWithProtectedInitials(phrase: string) {
   return phrase.split(/(\[[^\]]+\])/g).filter(Boolean).map((part, index) => {
     const isInitialBlock = /^\[[^\]]+\]$/.test(part);
@@ -281,6 +296,7 @@ export default function ClassMissionPage() {
   const [participantMode, setParticipantMode] = useState<ParticipantMode>('free');
   const [session, setSession] = useState<MissionPayload | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [selectedHistory, setSelectedHistory] = useState<HistoryEntry | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [answerOpen, setAnswerOpen] = useState(false);
   const autoEndLockRef = useRef(false);
@@ -324,6 +340,7 @@ export default function ClassMissionPage() {
     () => Math.max(0, ...(histories ?? []).map((entry) => readMissionPayload(entry)?.score ?? 0)),
     [histories],
   );
+  const selectedHistoryPayload = selectedHistory ? readMissionPayload(selectedHistory) : null;
 
   useEffect(() => {
     autoEndLockRef.current = false;
@@ -758,30 +775,45 @@ export default function ClassMissionPage() {
                 {histories.map((entry) => {
                   const payload = readMissionPayload(entry);
                   const succeeded = (payload?.score ?? 0) >= (payload?.targetScore ?? Number.MAX_SAFE_INTEGER);
+                  const participantModeLabel = getParticipantModeLabel(payload?.participantMode ?? 'free');
+                  const lastSuccessfulResponder = payload ? getLastSuccessfulResponder(payload) : null;
                   return (
-                    <div key={entry.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <button
+                      key={entry.id}
+                      type="button"
+                      onClick={() => setSelectedHistory(entry)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:border-slate-300 hover:bg-white"
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="text-xs text-slate-500 tabular-nums">{formatDateTime(entry.createdAt)}</div>
-                          <div className="mt-1 font-semibold text-slate-800">{payload?.score ?? 0}? / ?? {payload?.targetScore ?? 0}?</div>
+                          <div className="mt-1 font-semibold text-slate-800">
+                            {payload?.score ?? 0}점 / 목표 {payload?.targetScore ?? 0}점
+                          </div>
                           <div className="mt-1 text-sm text-slate-600">
-                            {(payload?.timeLimitSec ?? 0) / 60}? ? {payload?.participantMode === 'seat' ? '???' : payload?.participantMode === 'number' ? '???' : '?? ??'}
+                            {(payload?.timeLimitSec ?? 0) / 60}분 · {participantModeLabel}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {lastSuccessfulResponder ? `${lastSuccessfulResponder}까지 성공` : '성공 기록 없음'}
                           </div>
                         </div>
                         <div className="text-right">
                           <div className={`text-xs font-bold ${succeeded ? 'text-emerald-700' : 'text-slate-500'}`}>
-                            {succeeded ? '??' : '??'}
+                            {succeeded ? '성공' : '종료'}
                           </div>
                           <button
                             type="button"
-                            onClick={() => void deleteHistory(entry)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void deleteHistory(entry);
+                            }}
                             className="mt-2 rounded-lg border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
                           >
-                            ??
+                            삭제
                           </button>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -1015,6 +1047,135 @@ export default function ClassMissionPage() {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedHistory && selectedHistoryPayload && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-4">
+          <button
+            type="button"
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+            onClick={() => setSelectedHistory(null)}
+            aria-label="기록 상세 닫기"
+          />
+          <div className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <div className="border-b border-slate-200 px-5 py-4 md:px-6">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-xs tracking-[0.35em] text-slate-400">MISSION HISTORY</div>
+                  <h2 className="mt-2 text-2xl font-black text-slate-900">학급 공동 미션 기록</h2>
+                  <div className="mt-2 text-sm text-slate-500">{formatDateTime(selectedHistory.createdAt)}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedHistory(null)}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto px-5 py-5 md:px-6 md:py-6">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <MetricCard label="최종 점수" value={`${selectedHistoryPayload.score}점`} tone="emerald" />
+                <MetricCard label="목표" value={`${selectedHistoryPayload.targetScore}점`} tone="slate" />
+                <MetricCard label="제한 시간" value={`${selectedHistoryPayload.timeLimitSec / 60}분`} tone="amber" />
+                <MetricCard
+                  label="마지막 성공"
+                  value={getLastSuccessfulResponder(selectedHistoryPayload) ?? '없음'}
+                  tone="rose"
+                />
+              </div>
+
+              <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+                  <h3 className="text-lg font-black text-slate-900">기본 정보</h3>
+                  <div className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+                    <div className="rounded-xl bg-white px-4 py-3">
+                      <div className="text-xs font-bold tracking-[0.2em] text-slate-400">문제팩</div>
+                      <div className="mt-1 font-semibold text-slate-900">{getPackLabel(selectedHistoryPayload.selectedPackId)}</div>
+                    </div>
+                    <div className="rounded-xl bg-white px-4 py-3">
+                      <div className="text-xs font-bold tracking-[0.2em] text-slate-400">진행 방식</div>
+                      <div className="mt-1 font-semibold text-slate-900">{getParticipantModeLabel(selectedHistoryPayload.participantMode)}</div>
+                    </div>
+                    <div className="rounded-xl bg-white px-4 py-3">
+                      <div className="text-xs font-bold tracking-[0.2em] text-slate-400">정답 / 오답 / 건너뛰기</div>
+                      <div className="mt-1 font-semibold text-slate-900">
+                        {selectedHistoryPayload.score} / {selectedHistoryPayload.wrongCount} / {selectedHistoryPayload.skipCount}
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-white px-4 py-3">
+                      <div className="text-xs font-bold tracking-[0.2em] text-slate-400">총 시도</div>
+                      <div className="mt-1 font-semibold text-slate-900">{selectedHistoryPayload.totalAttempts}문제</div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+                  <h3 className="text-lg font-black text-slate-900">누구까지 성공했는지</h3>
+                  <div className="mt-3 rounded-xl bg-white px-4 py-4">
+                    <div className="text-sm text-slate-500">마지막 정답자</div>
+                    <div className="mt-1 text-xl font-black text-slate-900">
+                      {getLastSuccessfulResponder(selectedHistoryPayload) ?? '성공 기록 없음'}
+                    </div>
+                    <div className="mt-3 text-sm text-slate-600">
+                      성공한 문제 수 {selectedHistoryPayload.score}개
+                    </div>
+                    {selectedHistoryPayload.participantQueue.length > 0 && (
+                      <div className="mt-3 text-sm text-slate-600">
+                        참여 순서 {selectedHistoryPayload.participantQueue.slice(0, 10).join(', ')}
+                        {selectedHistoryPayload.participantQueue.length > 10 ? ' ...' : ''}
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </div>
+
+              <section className="mt-4 rounded-[1.5rem] border border-slate-200 bg-white p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-lg font-black text-slate-900">문제별 결과</h3>
+                  <span className="text-xs text-slate-500">{selectedHistoryPayload.results.length}개 기록</span>
+                </div>
+                {selectedHistoryPayload.results.length === 0 ? (
+                  <div className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                    저장된 문제 결과가 없습니다.
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    {selectedHistoryPayload.results.map((result, index) => (
+                      <div key={`${result.answeredAt}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-bold tracking-[0.2em] text-slate-400">
+                              {result.questionNumber ?? index + 1}번 문제
+                            </div>
+                            <div className="mt-1 text-base font-semibold text-slate-900">{result.phrase}</div>
+                            <div className="mt-2 text-sm text-slate-600 whitespace-pre-line">{result.answer}</div>
+                          </div>
+                          <div className="min-w-[4.5rem] shrink-0 text-right">
+                            <div
+                              className={`whitespace-nowrap text-xs font-bold ${
+                                result.outcome === 'correct'
+                                  ? 'text-emerald-700'
+                                  : result.outcome === 'wrong'
+                                    ? 'text-rose-700'
+                                    : 'text-amber-700'
+                              }`}
+                            >
+                              {result.outcome === 'correct' ? '정답' : result.outcome === 'wrong' ? '오답' : '건너뛰기'}
+                            </div>
+                            <div className="mt-1 text-sm text-slate-600">{result.responder ?? '교사 선택'}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
             </div>
           </div>
         </div>
