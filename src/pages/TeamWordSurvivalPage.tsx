@@ -98,15 +98,6 @@ function loadSavedProblemPacks(): SavedProblemPack[] {
   }
 }
 
-function saveProblemPacks(packs: SavedProblemPack[]) {
-  window.localStorage.setItem(SAVED_PROBLEM_PACKS_KEY, JSON.stringify(packs));
-}
-
-function makePackId() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-  return `pack-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
 function snapshotFromHistory(entry: HistoryEntry | undefined): SeatResultSeat[] {
   if (!entry || !entry.payload || typeof entry.payload !== 'object') return [];
   const payload = entry.payload as { snapshot?: SeatResultSeat[] };
@@ -315,7 +306,7 @@ export default function TeamWordSurvivalPage() {
   const grade4Problems = useMemo(() => normalizeProblemPack(grade4ProblemDeck), []);
   const grade5Problems = useMemo(() => normalizeProblemPack(grade5ProblemDeck), []);
   const grade6Problems = useMemo(() => normalizeProblemPack(grade6ProblemDeck), []);
-  const [savedPacks, setSavedPacks] = useState<SavedProblemPack[]>(() => loadSavedProblemPacks());
+  const [savedPacks] = useState<SavedProblemPack[]>(() => loadSavedProblemPacks());
   const [selectedPackId, setSelectedPackId] = useState('idiom');
   const [rangeStart, setRangeStart] = useState(1);
   const [rangeEnd, setRangeEnd] = useState<number | null>(null);
@@ -336,8 +327,6 @@ export default function TeamWordSurvivalPage() {
     const e = Math.max(s + 1, Math.min(rangeEnd ?? problems.length, problems.length));
     return problems.slice(s, e);
   }, [problems, rangeStart, rangeEnd]);
-
-  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (classId == null && classes && classes.length === 1 && classes[0].id != null) {
@@ -430,29 +419,6 @@ export default function TeamWordSurvivalPage() {
       savedAt: Date.now(),
     });
   }, [championTeamId, classId, currentRound, matchRule, matches, modalPhase, seatSignature, seatSnapshot.length, selectedPackId, teams]);
-
-  async function handleProblemFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const parsed = JSON.parse(await file.text()) as unknown;
-      const nextProblems = normalizeProblemPack(parsed);
-      if (nextProblems.length === 0) throw new Error('사용할 수 있는 문제가 없습니다.');
-      const name = file.name.replace(/\.json$/i, '') || '선택한 문제팩';
-      const existing = savedPacks.find((pack) => pack.name === name);
-      const nextPack: SavedProblemPack = { id: existing?.id ?? makePackId(), name, problems: nextProblems, createdAt: existing?.createdAt ?? Date.now() };
-      const nextPacks = existing ? savedPacks.map((pack) => pack.id === existing.id ? nextPack : pack) : [...savedPacks, nextPack];
-      setSavedPacks(nextPacks);
-      saveProblemPacks(nextPacks);
-      setSelectedPackId(nextPack.id);
-      setRangeStart(1);
-      setRangeEnd(null);
-    } catch (err) {
-      alert(`문제 JSON을 읽지 못했습니다: ${(err as Error).message}`);
-    } finally {
-      if (fileRef.current) fileRef.current.value = '';
-    }
-  }
 
   function startTeamBattle() {
     if (teams.length < 2) {
@@ -588,13 +554,12 @@ export default function TeamWordSurvivalPage() {
                   <option value="grade6-vocab">6학년 필수 어휘</option>
                   {savedPacks.map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}
                 </select>
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  className="shrink-0 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-700"
+                <Link
+                  to="/settings"
+                  className="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
                 >
-                  JSON 선택
-                </button>
-                <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={handleProblemFile} />
+                  설정에서 문제팩 관리
+                </Link>
               </div>
               {problems.length > 0 && (
                 <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
@@ -633,6 +598,9 @@ export default function TeamWordSurvivalPage() {
                   )}
                 </div>
               )}
+            </div>
+            <div className="mt-2 self-end rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+              사용자 문제팩은 설정 페이지에서 직접 작성해 저장한 뒤 여기서 바로 선택해 사용할 수 있습니다.
             </div>
           </div>
         </div>
@@ -834,7 +802,7 @@ export default function TeamWordSurvivalPage() {
                   {stage === 'problem' && (
                     <div className="space-y-4 max-w-3xl">
                       <div className="text-xs tracking-[0.4em] text-slate-300">문제</div>
-                      <div className="text-3xl md:text-4xl font-black text-amber-200 break-keep">{activeProblem?.phrase ?? '문제 JSON을 넣어 주세요'}</div>
+                      <div className="text-3xl md:text-4xl font-black text-amber-200 break-keep">{activeProblem?.phrase ?? '설정에서 저장한 문제팩을 선택해 주세요'}</div>
                       {activeProblem?.hint && <div className="text-sm text-slate-300">힌트: {activeProblem.hint}</div>}
                       <button onClick={() => setAnswerOpen((value) => !value)} className="px-3 py-1.5 rounded-full bg-white/10 border border-white/20 hover:bg-white/20">{answerOpen ? '정답 확인 완료' : '정답 확인'}</button>
                       {answerOpen && <div className="rounded-2xl bg-white text-slate-900 px-5 py-4 text-lg font-semibold whitespace-pre-line">정답: {activeProblem?.meaning ?? '등록된 정답이 없습니다.'}</div>}

@@ -10,25 +10,11 @@ import grade4ProblemDeck from '../data/grade4_vocab.json';
 import grade5ProblemDeck from '../data/grade5_vocab.json';
 import grade6ProblemDeck from '../data/grade6_vocab.json';
 import { db, type HistoryEntry, type Student } from '../db';
+import { SAVED_PROBLEM_PACKS_KEY, type ProblemCard, type SavedProblemPack } from '../lib/problemPacks';
 import { shuffle } from '../lib/shuffle';
 import { sfx } from '../lib/sfx';
 
 type Stage = 'intro' | 'versus' | 'count3' | 'count2' | 'count1' | 'idiom';
-
-type ProblemCard = {
-  phrase: string;
-  meaning: string;
-  hint?: string;
-};
-
-type SavedProblemPack = {
-  id: string;
-  name: string;
-  problems: ProblemCard[];
-  createdAt: number;
-};
-
-const SAVED_PROBLEM_PACKS_KEY = 'word-survival:saved-problem-packs';
 
 type RoundMatch = {
   id: string;
@@ -888,12 +874,12 @@ export default function IdiomBattlePage() {
                     <option key={pack.id} value={pack.id}>{pack.name}</option>
                   ))}
                 </select>
-                <button
-                  onClick={() => problemFileRef.current?.click()}
-                  className="shrink-0 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-700"
+                <Link
+                  to="/settings"
+                  className="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
                 >
-                  JSON 선택
-                </button>
+                  설정에서 문제팩 관리
+                </Link>
                 {selectedProblemPackId !== 'idiom' && (
                   <button
                     onClick={resetProblemPack}
@@ -948,60 +934,18 @@ export default function IdiomBattlePage() {
               className="hidden"
               onChange={handleProblemFile}
             />
-          <details className="w-fit max-w-full self-end rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 open:w-full lg:open:max-w-xl">
-            <summary className="cursor-pointer select-none whitespace-nowrap text-right font-semibold text-slate-700">
-              LLM으로 문제 JSON 만드는 법 보기
-            </summary>
-            <div className="mt-3 space-y-3 text-left">
-              <p>
-                LLM에게 아래 프롬프트를 붙여넣고 주제와 개수만 바꾸면 됩니다. 결과는 설명 문장 없이 JSON 배열만 받아서 <code className="px-1 py-0.5 rounded bg-slate-100">.json</code> 파일로 저장한 뒤 선택하세요.
-              </p>
-              <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-amber-900">
-                <div className="font-semibold">메모장에서 JSON 파일로 저장하는 법</div>
-                <ol className="mt-1 list-decimal pl-4 space-y-1">
-                  <li>LLM이 만든 JSON 배열 전체를 복사해 메모장에 붙여넣습니다.</li>
-                  <li>저장할 때 파일 이름을 <code className="px-1 py-0.5 rounded bg-white/70">proverbs.json</code>처럼 끝이 <code className="px-1 py-0.5 rounded bg-white/70">.json</code>이 되게 씁니다.</li>
-                  <li>Windows 메모장은 가능하면 파일 형식을 <code className="px-1 py-0.5 rounded bg-white/70">모든 파일</code>로 바꾸고, 인코딩은 <code className="px-1 py-0.5 rounded bg-white/70">UTF-8</code>로 저장합니다.</li>
-                  <li><code className="px-1 py-0.5 rounded bg-white/70">proverbs.json.txt</code>로 저장됐다면 파일 이름 바꾸기로 뒤의 <code className="px-1 py-0.5 rounded bg-white/70">.txt</code>를 지우면 됩니다.</li>
-                </ol>
-              </div>
-              <pre className="overflow-x-auto rounded-lg bg-slate-950 text-slate-100 p-3 leading-relaxed">{`초등학생용 단어 서바이벌 문제 JSON을 만들어줘.
-주제: 속담
-개수: 30개
-난이도: 초등학교 4~6학년
-규칙:
-- 반드시 JSON 배열만 출력해.
-- 각 항목은 question, answer, hint 키만 사용해.
-- question에는 맞힐 문제를 넣어.
-- answer에는 교사가 확인할 정답/뜻을 넣어.
-- hint에는 문제 종류를 짧게 넣어. 예: 속담, 사자성어, 어휘
-- 마크다운 코드블록이나 추가 설명은 쓰지 마.`}</pre>
-              <div>
-                <div className="font-semibold text-slate-700">지원 JSON 예시</div>
-                <pre className="mt-2 overflow-x-auto rounded-lg bg-slate-950 text-slate-100 p-3 leading-relaxed">{`[
-  {
-    "question": "가는 말이 고와야 오는 말이 곱다",
-    "answer": "상대에게 좋게 말해야 상대도 좋게 말한다.",
-    "hint": "속담"
-  },
-  {
-    "phrase": "苦盡甘來 (고진감래)",
-    "meaning": "고생 끝에 낙이 온다.",
-    "hint": "사자성어"
-  }
-]`}</pre>
-              </div>
+            <div className="self-end rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+              사용자 문제팩은 설정 페이지에서 직접 작성해 저장한 뒤 여기서 바로 선택해 사용할 수 있습니다.
             </div>
-          </details>
           </div>
         </div>
       </div>
 
       {problems.length === 0 && (
         <div className="p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-900">
-          <div className="font-semibold">문제 JSON이 아직 비어 있습니다.</div>
+          <div className="font-semibold">사용 가능한 문제팩이 아직 없습니다.</div>
           <div className="text-sm mt-1">
-            위 형식의 JSON 파일을 선택하면 바로 문제팩으로 사용할 수 있습니다.
+            설정에서 사용자 문제팩을 저장한 뒤 여기서 선택해 주세요.
           </div>
         </div>
       )}

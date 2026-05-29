@@ -9,6 +9,13 @@ import grade3ProblemDeck from '../data/grade3_vocab.json';
 import grade4ProblemDeck from '../data/grade4_vocab.json';
 import grade5ProblemDeck from '../data/grade5_vocab.json';
 import grade6ProblemDeck from '../data/grade6_vocab.json';
+import {
+  loadSavedProblemPacks,
+  makeSavedPackId,
+  normalizeProblemPack,
+  saveProblemPacks,
+  type SavedProblemPack,
+} from '../lib/problemPacks';
 
 type PrintableProblem = {
   phrase: string;
@@ -22,6 +29,20 @@ type ProblemPack = {
   description: string;
   problems: PrintableProblem[];
 };
+
+const CUSTOM_PACK_TEMPLATE = `[
+  {
+    "question": "뜻을 보고 알맞은 사자성어를 말해 보세요.",
+    "answer": "사자성어 정답",
+    "hint": "사자성어"
+  },
+  {
+    "word": "낱말 정답",
+    "definition": "이 뜻을 가진 낱말은 무엇일까요?",
+    "example": "예문이 있으면 함께 저장됩니다.",
+    "hint": "어휘"
+  }
+]`;
 
 function readString(raw: Record<string, unknown>, keys: string[]) {
   for (const key of keys) {
@@ -107,11 +128,106 @@ const defaultProblemPacks: ProblemPack[] = [
 
 export default function SettingsPage() {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [savedProblemPacks, setSavedProblemPacks] = useState<SavedProblemPack[]>(() => loadSavedProblemPacks());
   const [previewPackId, setPreviewPackId] = useState<string | null>(null);
-  const previewPack = useMemo(
-    () => defaultProblemPacks.find((pack) => pack.id === previewPackId) ?? null,
-    [previewPackId],
+  const [editingPackId, setEditingPackId] = useState<string | null>(null);
+  const [packName, setPackName] = useState('');
+  const [packJson, setPackJson] = useState(CUSTOM_PACK_TEMPLATE);
+  const [packNotice, setPackNotice] = useState<string | null>(null);
+  const previewPacks = useMemo(
+    () => [
+      ...defaultProblemPacks,
+      ...savedProblemPacks.map((pack) => ({
+        id: pack.id,
+        name: pack.name,
+        description: '교사가 브라우저에 직접 저장한 사용자 문제팩입니다.',
+        problems: pack.problems,
+      })),
+    ],
+    [savedProblemPacks],
   );
+  const previewPack = useMemo(
+    () => previewPacks.find((pack) => pack.id === previewPackId) ?? null,
+    [previewPackId, previewPacks],
+  );
+  const editorStatus = useMemo(() => {
+    try {
+      const parsed = JSON.parse(packJson) as unknown;
+      const problems = normalizeProblemPack(parsed);
+      if (problems.length === 0) {
+        return { valid: false, message: '유효한 문제를 찾지 못했습니다.' };
+      }
+      return { valid: true, message: `${problems.length}문항을 저장할 수 있습니다.` };
+    } catch (error) {
+      return { valid: false, message: `JSON 오류: ${(error as Error).message}` };
+    }
+  }, [packJson]);
+
+  function startNewPackEditor() {
+    setEditingPackId(null);
+    setPackName('');
+    setPackJson(CUSTOM_PACK_TEMPLATE);
+    setPackNotice(null);
+  }
+
+  function startEditPack(pack: SavedProblemPack) {
+    setEditingPackId(pack.id);
+    setPackName(pack.name);
+    setPackJson(JSON.stringify(pack.problems, null, 2));
+    setPackNotice(null);
+  }
+
+  function persistSavedProblemPacks(nextPacks: SavedProblemPack[]) {
+    setSavedProblemPacks(nextPacks);
+    saveProblemPacks(nextPacks);
+  }
+
+  function saveCustomProblemPack() {
+    const name = packName.trim();
+    if (!name) {
+      setPackNotice('문제팩 이름을 먼저 입력해 주세요.');
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(packJson) as unknown;
+      const problems = normalizeProblemPack(parsed);
+      if (problems.length === 0) {
+        setPackNotice('저장 가능한 문제를 찾지 못했습니다.');
+        return;
+      }
+
+      const existing = editingPackId
+        ? savedProblemPacks.find((pack) => pack.id === editingPackId)
+        : savedProblemPacks.find((pack) => pack.name === name);
+      const nextPack: SavedProblemPack = {
+        id: existing?.id ?? makeSavedPackId(),
+        name,
+        problems,
+        createdAt: existing?.createdAt ?? Date.now(),
+      };
+      const nextPacks = existing
+        ? savedProblemPacks.map((pack) => (pack.id === existing.id ? nextPack : pack))
+        : [...savedProblemPacks, nextPack];
+      persistSavedProblemPacks(nextPacks);
+      setEditingPackId(nextPack.id);
+      setPackNotice(`"${name}" 문제팩을 저장했습니다.`);
+    } catch (error) {
+      setPackNotice(`JSON을 저장하지 못했습니다: ${(error as Error).message}`);
+    }
+  }
+
+  function deleteCustomProblemPack(pack: SavedProblemPack) {
+    if (!confirm(`"${pack.name}" 문제팩을 삭제할까요?`)) return;
+    const nextPacks = savedProblemPacks.filter((entry) => entry.id !== pack.id);
+    persistSavedProblemPacks(nextPacks);
+    if (editingPackId === pack.id) {
+      startNewPackEditor();
+    }
+    if (previewPackId === pack.id) {
+      setPreviewPackId(null);
+    }
+  }
 
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -148,7 +264,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {defaultProblemPacks.map((pack) => (
+          {previewPacks.map((pack) => (
             <button
               key={pack.id}
               type="button"
@@ -162,6 +278,124 @@ export default function SettingsPage() {
               </div>
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="no-print p-4 bg-white border border-slate-200 rounded-lg mb-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-semibold mb-2">직접 만든 문제팩 관리</h2>
+            <p className="text-sm text-slate-600">
+              JSON 파일을 올리지 않아도 여기서 문제 JSON을 직접 작성해 브라우저에 저장할 수 있습니다. 저장한 문제팩은 단어 서바이벌 문제팩 목록에 바로 나타납니다.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={startNewPackEditor}
+            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+          >
+            새 문제팩
+          </button>
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-[0.95fr,1.05fr]">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mb-3 text-sm font-semibold text-slate-800">저장된 사용자 문제팩</div>
+            {savedProblemPacks.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">
+                아직 저장한 사용자 문제팩이 없습니다.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {savedProblemPacks.map((pack) => (
+                  <div key={pack.id} className="rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-semibold text-slate-900">{pack.name}</div>
+                        <div className="mt-1 text-xs text-slate-500">{pack.problems.length}문항</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPackId(pack.id)}
+                          className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                        >
+                          보기
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => startEditPack(pack)}
+                          className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                        >
+                          수정
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteCustomProblemPack(pack)}
+                          className="rounded-md border border-red-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mb-3 text-sm font-semibold text-slate-800">
+              {editingPackId ? '문제팩 수정' : '새 문제팩 작성'}
+            </div>
+            <div className="space-y-3">
+              <label className="block">
+                <div className="mb-1 text-sm font-medium text-slate-700">문제팩 이름</div>
+                <input
+                  type="text"
+                  value={packName}
+                  onChange={(e) => setPackName(e.target.value)}
+                  placeholder="예: 6학년 사회 어휘"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-slate-500"
+                />
+              </label>
+              <label className="block">
+                <div className="mb-1 text-sm font-medium text-slate-700">문제 JSON</div>
+                <textarea
+                  value={packJson}
+                  onChange={(e) => setPackJson(e.target.value)}
+                  spellCheck={false}
+                  className="min-h-[340px] w-full rounded-xl border border-slate-300 bg-slate-950 px-3 py-3 font-mono text-sm leading-6 text-slate-100 focus:outline-none focus:border-slate-400"
+                />
+              </label>
+              <div className={`rounded-xl px-3 py-2 text-sm ${editorStatus.valid ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}`}>
+                {editorStatus.message}
+              </div>
+              {packNotice && (
+                <div className="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700">{packNotice}</div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={saveCustomProblemPack}
+                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+                >
+                  브라우저에 저장
+                </button>
+                <button
+                  type="button"
+                  onClick={startNewPackEditor}
+                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                >
+                  새로 쓰기
+                </button>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+                <div className="font-semibold text-slate-800">지원 JSON 형식</div>
+                <div className="mt-2">`question` / `answer` / `hint` 형식과 `word` / `definition` / `example` 형식을 모두 지원합니다.</div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import defaultProblemDeck from '../data/idioms.json';
+import idiomInitialProblemDeck from '../data/idiom_initials.json';
+import idiomMeaningQuizDeck from '../data/idiom_meaning_quiz.json';
 import proverbProblemDeck from '../data/proverbs.json';
 import grade3ProblemDeck from '../data/grade3_vocab.json';
 import grade4ProblemDeck from '../data/grade4_vocab.json';
@@ -20,13 +22,15 @@ type ProblemCard = {
 
 type MissionPackId =
   | 'idiom'
+  | 'idiom-initials'
+  | 'idiom-meaning-quiz'
   | 'proverb'
   | 'grade3-vocab'
   | 'grade4-vocab'
   | 'grade5-vocab'
   | 'grade6-vocab';
 
-type ParticipantMode = 'free' | 'number' | 'seat';
+type ParticipantMode = 'random' | 'number' | 'seat';
 
 type MissionQuestionResult = {
   responder: string | null;
@@ -43,6 +47,8 @@ type MissionPayload = {
   format: 'class-mission/v1';
   classId: number;
   selectedPackId: MissionPackId;
+  rangeStart: number;
+  rangeEnd: number | null;
   timeLimitSec: number;
   targetScore: number;
   participantMode: ParticipantMode;
@@ -63,6 +69,8 @@ type MissionPayload = {
 const DEFAULT_PACK_ID: MissionPackId = 'idiom';
 const PACK_OPTIONS: Array<{ id: MissionPackId; label: string }> = [
   { id: 'idiom', label: '사자성어 기본팩(문장완성)' },
+  { id: 'idiom-initials', label: '사자성어 기본팩(초성)' },
+  { id: 'idiom-meaning-quiz', label: '사자성어 기본팩(사자성어 맞추기)' },
   { id: 'proverb', label: '속담 기본팩' },
   { id: 'grade3-vocab', label: '3학년 필수 어휘' },
   { id: 'grade4-vocab', label: '4학년 필수 어휘' },
@@ -151,6 +159,14 @@ function seatSnapshotSignature(snapshot: SeatResultSeat[]) {
 }
 
 function buildParticipantQueue(mode: ParticipantMode, students: Student[], seatSnapshot: SeatResultSeat[]) {
+  if (mode === 'random') {
+    return shuffle(
+      [...students]
+        .sort((a, b) => (a.number ?? Number.MAX_SAFE_INTEGER) - (b.number ?? Number.MAX_SAFE_INTEGER) || a.createdAt - b.createdAt)
+        .map((student) => student.name),
+    );
+  }
+
   if (mode === 'seat') {
     return seatSnapshot
       .filter((seat) => seat.name)
@@ -167,10 +183,17 @@ function buildParticipantQueue(mode: ParticipantMode, students: Student[], seatS
   return [];
 }
 
-function pickNextProblemIndex(problemCount: number, usedProblemIndices: number[]) {
-  if (problemCount === 0) return null;
-  const available = Array.from({ length: problemCount }, (_, index) => index).filter((index) => !usedProblemIndices.includes(index));
-  const pool = available.length > 0 ? available : Array.from({ length: problemCount }, (_, index) => index);
+function getProblemRangeIndices(problemCount: number, rangeStart: number, rangeEnd: number | null) {
+  if (problemCount === 0) return [];
+  const startIndex = Math.max(0, Math.min(rangeStart - 1, problemCount - 1));
+  const endIndex = Math.max(startIndex, Math.min((rangeEnd ?? problemCount) - 1, problemCount - 1));
+  return Array.from({ length: endIndex - startIndex + 1 }, (_, offset) => startIndex + offset);
+}
+
+function pickNextProblemIndexFromPool(problemIndices: number[], usedProblemIndices: number[]) {
+  if (problemIndices.length === 0) return null;
+  const available = problemIndices.filter((index) => !usedProblemIndices.includes(index));
+  const pool = available.length > 0 ? available : problemIndices;
   return shuffle(pool)[0] ?? null;
 }
 
@@ -187,7 +210,7 @@ function getPackLabel(packId: MissionPackId) {
 function getParticipantModeLabel(mode: ParticipantMode) {
   if (mode === 'seat') return '자리 순서';
   if (mode === 'number') return '번호 순서';
-  return '교사 선택';
+  return '무작위 선택';
 }
 
 function getLastSuccessfulResponder(payload: MissionPayload) {
@@ -217,9 +240,11 @@ function readMissionPayload(entry: HistoryEntry): MissionPayload | null {
     format: 'class-mission/v1',
     classId: typeof payload.classId === 'number' ? payload.classId : entry.classId,
     selectedPackId: normalizePackId(typeof payload.selectedPackId === 'string' ? payload.selectedPackId : DEFAULT_PACK_ID),
+    rangeStart: typeof payload.rangeStart === 'number' ? payload.rangeStart : 1,
+    rangeEnd: typeof payload.rangeEnd === 'number' ? payload.rangeEnd : null,
     timeLimitSec: typeof payload.timeLimitSec === 'number' ? payload.timeLimitSec : 180,
     targetScore: typeof payload.targetScore === 'number' ? payload.targetScore : 15,
-    participantMode: payload.participantMode === 'number' || payload.participantMode === 'seat' ? payload.participantMode : 'free',
+    participantMode: payload.participantMode === 'number' || payload.participantMode === 'seat' ? payload.participantMode : 'random',
     participantQueue: Array.isArray(payload.participantQueue) ? payload.participantQueue.filter((value): value is string => typeof value === 'string') : [],
     seatSignature: typeof payload.seatSignature === 'string' ? payload.seatSignature : '',
     score: typeof payload.score === 'number' ? payload.score : 0,
@@ -284,6 +309,8 @@ export default function ClassMissionPage() {
   );
 
   const idiomProblems = useMemo(() => normalizeMeaningPromptPack(defaultProblemDeck), []);
+  const idiomInitialProblems = useMemo(() => normalizeMeaningPromptPack(idiomInitialProblemDeck), []);
+  const idiomMeaningQuizProblems = useMemo(() => normalizeMeaningPromptPack(idiomMeaningQuizDeck), []);
   const proverbProblems = useMemo(() => normalizeMeaningPromptPack(proverbProblemDeck), []);
   const grade3Problems = useMemo(() => normalizeVocabularyPack(grade3ProblemDeck), []);
   const grade4Problems = useMemo(() => normalizeVocabularyPack(grade4ProblemDeck), []);
@@ -291,9 +318,11 @@ export default function ClassMissionPage() {
   const grade6Problems = useMemo(() => normalizeVocabularyPack(grade6ProblemDeck), []);
 
   const [selectedPackId, setSelectedPackId] = useState<MissionPackId>(DEFAULT_PACK_ID);
+  const [rangeStart, setRangeStart] = useState(1);
+  const [rangeEnd, setRangeEnd] = useState<number | null>(null);
   const [timeLimitSec, setTimeLimitSec] = useState(180);
   const [targetScore, setTargetScore] = useState(15);
-  const [participantMode, setParticipantMode] = useState<ParticipantMode>('free');
+  const [participantMode, setParticipantMode] = useState<ParticipantMode>('random');
   const [session, setSession] = useState<MissionPayload | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedHistory, setSelectedHistory] = useState<HistoryEntry | null>(null);
@@ -308,27 +337,40 @@ export default function ClassMissionPage() {
     }
   }, [classId, classes]);
 
+  const getProblemsForPackId = (packId: MissionPackId) => (
+    packId === 'proverb'
+      ? proverbProblems
+      : packId === 'idiom-initials'
+        ? idiomInitialProblems
+        : packId === 'idiom-meaning-quiz'
+          ? idiomMeaningQuizProblems
+      : packId === 'grade3-vocab'
+        ? grade3Problems
+        : packId === 'grade4-vocab'
+          ? grade4Problems
+          : packId === 'grade5-vocab'
+            ? grade5Problems
+            : packId === 'grade6-vocab'
+              ? grade6Problems
+              : idiomProblems
+  );
+
   const activePackId = normalizePackId(selectedPackId);
-  const problems = activePackId === 'proverb'
-    ? proverbProblems
-    : activePackId === 'grade3-vocab'
-      ? grade3Problems
-      : activePackId === 'grade4-vocab'
-        ? grade4Problems
-        : activePackId === 'grade5-vocab'
-          ? grade5Problems
-          : activePackId === 'grade6-vocab'
-            ? grade6Problems
-            : idiomProblems;
+  const problems = getProblemsForPackId(activePackId);
+  const sessionProblems = getProblemsForPackId(session?.selectedPackId ?? activePackId);
 
   const seatSnapshot = useMemo(() => snapshotFromHistory(latestSeatHistory), [latestSeatHistory]);
   const seatSignature = useMemo(() => seatSnapshotSignature(seatSnapshot), [seatSnapshot]);
+  const problemRangeIndices = useMemo(
+    () => getProblemRangeIndices(problems.length, rangeStart, rangeEnd),
+    [problems.length, rangeEnd, rangeStart],
+  );
   const participantQueue = useMemo(
     () => buildParticipantQueue(participantMode, students ?? [], seatSnapshot),
     [participantMode, seatSnapshot, students],
   );
 
-  const activeProblem = session?.currentProblemIndex != null ? problems[session.currentProblemIndex] ?? null : null;
+  const activeProblem = session?.currentProblemIndex != null ? sessionProblems[session.currentProblemIndex] ?? null : null;
   const currentResponder = session && session.participantQueue.length > 0
     ? session.participantQueue[session.currentResponderIndex % session.participantQueue.length] ?? null
     : null;
@@ -341,6 +383,27 @@ export default function ClassMissionPage() {
     [histories],
   );
   const selectedHistoryPayload = selectedHistory ? readMissionPayload(selectedHistory) : null;
+
+  useEffect(() => {
+    if (problems.length === 0) {
+      setRangeStart(1);
+      setRangeEnd(null);
+      return;
+    }
+
+    setRangeStart((current) => Math.max(1, Math.min(current, problems.length)));
+    setRangeEnd((current) => {
+      if (current == null || current >= problems.length) return null;
+      return Math.max(1, current);
+    });
+  }, [problems.length]);
+
+  useEffect(() => {
+    setRangeEnd((current) => {
+      if (current == null) return null;
+      return current < rangeStart ? rangeStart : current;
+    });
+  }, [rangeStart]);
 
   useEffect(() => {
     autoEndLockRef.current = false;
@@ -409,7 +472,7 @@ export default function ClassMissionPage() {
       alert('학생 명단이 없습니다. 학급에 학생을 먼저 등록해 주세요.');
       return;
     }
-    if (problems.length === 0) {
+    if (problems.length === 0 || problemRangeIndices.length === 0) {
       alert('사용 가능한 문제가 없습니다.');
       return;
     }
@@ -418,11 +481,13 @@ export default function ClassMissionPage() {
       return;
     }
 
-    const firstProblemIndex = pickNextProblemIndex(problems.length, []);
+    const firstProblemIndex = pickNextProblemIndexFromPool(problemRangeIndices, []);
     const nextSession: MissionPayload = {
       format: 'class-mission/v1',
       classId,
       selectedPackId: activePackId,
+      rangeStart,
+      rangeEnd,
       timeLimitSec,
       targetScore,
       participantMode,
@@ -462,13 +527,18 @@ export default function ClassMissionPage() {
   }
 
   function chooseNextProblemIndex(currentSession: MissionPayload, currentProblemIndex: number | null) {
+    const nextProblemPool = getProblemRangeIndices(
+      getProblemsForPackId(currentSession.selectedPackId).length,
+      currentSession.rangeStart,
+      currentSession.rangeEnd,
+    );
     const used = currentProblemIndex == null
       ? currentSession.results.flatMap((result) => (result.problemIndex == null ? [] : [result.problemIndex]))
       : [
           ...currentSession.results.flatMap((result) => (result.problemIndex == null ? [] : [result.problemIndex])),
           currentProblemIndex,
         ];
-    return pickNextProblemIndex(problems.length, used);
+    return pickNextProblemIndexFromPool(nextProblemPool, used);
   }
 
   function applyOutcome(outcome: 'correct' | 'wrong' | 'skip') {
@@ -476,7 +546,7 @@ export default function ClassMissionPage() {
 
     const currentProblemIndex = session.currentProblemIndex;
     if (currentProblemIndex == null) return;
-    const current = currentProblemIndex != null ? problems[currentProblemIndex] ?? null : null;
+    const current = currentProblemIndex != null ? sessionProblems[currentProblemIndex] ?? null : null;
     if (!current) return;
     const resolvedProblemIndex = currentProblemIndex;
 
@@ -524,18 +594,108 @@ export default function ClassMissionPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-xs font-black tracking-[0.28em] text-amber-600">CLASS MISSION</div>
-          <h1 className="mt-2 text-2xl font-black text-slate-900">학급 공동 미션</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            반 전체가 하나의 팀이 되어 제한 시간 안에 목표 정답 수를 넘겨 보세요.
-          </p>
-        </div>
-        <Link to="/" className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
-          홈으로
+      <div>
+        <Link to="/" className="text-sm text-slate-500 hover:text-slate-800">
+          돌아가기
         </Link>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-[240px] flex-1">
+            <div className="text-xs font-black tracking-[0.28em] text-amber-600">CLASS MISSION</div>
+            <h1 className="mt-2 text-2xl font-black text-slate-900">학급 공동 미션</h1>
+            <p className="mt-2 text-sm text-slate-500">
+              반 전체가 하나의 팀이 되어 제한 시간 안에 목표 정답 수를 넘겨 보세요.
+            </p>
+          </div>
+          <div className="ml-auto flex w-full max-w-xl flex-col gap-2 lg:w-auto">
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+              <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
+                <span className="shrink-0 w-16 text-xs font-bold text-slate-500">문제팩</span>
+                <select
+                  value={selectedPackId}
+                  onChange={(e) => setSelectedPackId(normalizePackId(e.target.value))}
+                  className="flex-1 min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm text-slate-700 focus:outline-none focus:border-slate-400"
+                >
+                  {PACK_OPTIONS.map((pack) => (
+                    <option key={pack.id} value={pack.id}>{pack.label}</option>
+                  ))}
+                </select>
+                <Link
+                  to="/settings"
+                  className="shrink-0 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-700"
+                >
+                  설정에서 문제팩 관리
+                </Link>
+                {(selectedPackId !== DEFAULT_PACK_ID || rangeStart !== 1 || rangeEnd !== null) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPackId(DEFAULT_PACK_ID);
+                      setRangeStart(1);
+                      setRangeEnd(null);
+                    }}
+                    className="shrink-0 rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+                  >
+                    기본으로
+                  </button>
+                )}
+              </div>
+              {problems.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 px-3 py-2.5">
+                  <span className="shrink-0 w-16 text-xs font-bold text-slate-500">문제 범위</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={problems.length}
+                    value={rangeStart}
+                    onChange={(e) => setRangeStart(Math.max(1, Math.min(parseInt(e.target.value, 10) || 1, problems.length)))}
+                    className="w-14 rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1.5 text-center text-sm text-slate-700 focus:outline-none focus:border-slate-400"
+                  />
+                  <span className="text-sm text-slate-400">~</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={problems.length}
+                    value={rangeEnd ?? problems.length}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value, 10) || problems.length;
+                      setRangeEnd(value >= problems.length ? null : Math.max(1, value));
+                    }}
+                    className="w-14 rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1.5 text-center text-sm text-slate-700 focus:outline-none focus:border-slate-400"
+                  />
+                  <span className="text-xs text-slate-400">/ {problems.length}문항</span>
+                  <span className="ml-auto shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
+                    {problemRangeIndices.length}문항 선택
+                  </span>
+                  {(rangeStart !== 1 || rangeEnd !== null) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRangeStart(1);
+                        setRangeEnd(null);
+                      }}
+                      className="shrink-0 text-xs text-slate-400 hover:text-slate-700"
+                    >
+                      전체
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="self-end rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+              사용자 문제팩은 설정 페이지에서 직접 작성해 저장한 뒤 여기서 바로 선택해 사용할 수 있습니다.
+            </div>
+          </div>
+        </div>
       </div>
+
+      {problems.length === 0 && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900">
+          <div className="font-semibold">사용 가능한 문제팩이 아직 없습니다.</div>
+          <div className="mt-1 text-sm">
+            설정에서 사용자 문제팩을 저장한 뒤 여기서 선택해 주세요.
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[1.05fr,0.95fr]">
         <section className="space-y-4">
@@ -561,19 +721,6 @@ export default function ClassMissionPage() {
                   <option value="">학급을 선택해 주세요</option>
                   {(classes ?? []).map((cls) => (
                     <option key={cls.id} value={cls.id}>{cls.name}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="space-y-2">
-                <span className="text-sm font-semibold text-slate-700">문제 팩</span>
-                <select
-                  value={selectedPackId}
-                  onChange={(e) => setSelectedPackId(normalizePackId(e.target.value))}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-slate-500"
-                >
-                  {PACK_OPTIONS.map((pack) => (
-                    <option key={pack.id} value={pack.id}>{pack.label}</option>
                   ))}
                 </select>
               </label>
@@ -609,7 +756,7 @@ export default function ClassMissionPage() {
               <div className="text-sm font-semibold text-slate-700">참여 순서</div>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
                 {[
-                  { id: 'free', label: '교사 선택', desc: '교사가 자유롭게 발표자를 정합니다.' },
+                  { id: 'random', label: '무작위 선택', desc: '매 문제마다 무작위로 뽑힌 학생이 바로 답합니다.' },
                   { id: 'number', label: '번호 순서', desc: '학생 번호순으로 차례가 돌아갑니다.' },
                   { id: 'seat', label: '자리 순서', desc: '최근 자리배치 기준으로 진행합니다.' },
                 ].map((mode) => (
@@ -635,6 +782,9 @@ export default function ClassMissionPage() {
             <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
               <div>학생 수: <span className="font-bold text-slate-900">{students?.length ?? 0}명</span></div>
               <div className="mt-1">문제 수: <span className="font-bold text-slate-900">{problems.length}개</span></div>
+              <div className="mt-1">
+                출제 범위: <span className="font-bold text-slate-900">{rangeStart} ~ {rangeEnd ?? problems.length}번</span>
+              </div>
               <div className="mt-1">최고 기록: <span className="font-bold text-slate-900">{bestScore}점</span></div>
               {participantMode === 'seat' && seatSnapshot.length === 0 && (
                 <div className="mt-2 font-semibold text-amber-700">자리 순서는 최근 자리배치 기록이 있어야 사용할 수 있습니다.</div>
@@ -695,7 +845,7 @@ export default function ClassMissionPage() {
                     <div>
                       <div className="text-sm tracking-[0.3em] text-slate-300">CURRENT TURN</div>
                       <div className="mt-2 text-2xl font-black text-amber-200">
-                        {currentResponder ?? '교사 선택'}
+                        {currentResponder ?? '무작위 선택'}
                       </div>
                     </div>
                     <div className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-slate-200">
@@ -729,13 +879,9 @@ export default function ClassMissionPage() {
           <section className="rounded-2xl border border-slate-200 bg-white p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h3 className="font-semibold text-slate-800">참여 순서</h3>
-              <span className="text-xs text-slate-500">{participantMode === 'free' ? '교사 자유 진행' : `${participantQueue.length}명`}</span>
+              <span className="text-xs text-slate-500">{`${participantQueue.length}명`}</span>
             </div>
-            {participantMode === 'free' ? (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                교사가 자유롭게 발표자를 정하는 모드입니다.
-              </div>
-            ) : participantQueue.length === 0 ? (
+            {participantQueue.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
                 순서를 만들 수 있는 학생 또는 자리 정보가 없습니다.
               </div>
@@ -775,7 +921,7 @@ export default function ClassMissionPage() {
                 {histories.map((entry) => {
                   const payload = readMissionPayload(entry);
                   const succeeded = (payload?.score ?? 0) >= (payload?.targetScore ?? Number.MAX_SAFE_INTEGER);
-                  const participantModeLabel = getParticipantModeLabel(payload?.participantMode ?? 'free');
+                  const participantModeLabel = getParticipantModeLabel(payload?.participantMode ?? 'random');
                   const lastSuccessfulResponder = payload ? getLastSuccessfulResponder(payload) : null;
                   return (
                     <button
@@ -890,7 +1036,7 @@ export default function ClassMissionPage() {
                       <div className="grid w-full max-w-3xl gap-3 md:grid-cols-3">
                         <MetricCard label="목표" value={`${session.targetScore}`} tone="slate" />
                         <MetricCard label="시간" value={`${session.timeLimitSec}`} tone="amber" />
-                        <MetricCard label="발표" value={currentResponder ?? '교사'} tone="emerald" />
+                        <MetricCard label="발표" value={currentResponder ?? '무작위'} tone="emerald" />
                       </div>
                       <button
                         type="button"
@@ -955,7 +1101,7 @@ export default function ClassMissionPage() {
                           <div className="text-xs font-black tracking-[0.28em] text-slate-400">TURN INFO</div>
                           <div className="mt-3 text-sm font-semibold text-slate-500">현재 발표자</div>
                           <div className="mt-2 text-2xl font-black text-slate-900 break-keep">
-                            {currentResponder ?? '교사 선택'}
+                            {currentResponder ?? '무작위 선택'}
                           </div>
                           <div className="mt-5 text-sm font-semibold text-slate-500">진행 현황</div>
                           <div className="mt-2 text-lg font-black text-slate-900">
@@ -972,7 +1118,7 @@ export default function ClassMissionPage() {
                           <div>
                             <div className="text-sm tracking-[0.3em] text-slate-300">CURRENT TURN</div>
                             <div className="mt-2 text-2xl font-black text-amber-200 md:text-3xl">
-                              {currentResponder ?? '교사 선택'}
+                              {currentResponder ?? '무작위 선택'}
                             </div>
                           </div>
                           <div className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-slate-200">
@@ -1099,6 +1245,12 @@ export default function ClassMissionPage() {
                       <div className="mt-1 font-semibold text-slate-900">{getPackLabel(selectedHistoryPayload.selectedPackId)}</div>
                     </div>
                     <div className="rounded-xl bg-white px-4 py-3">
+                      <div className="text-xs font-bold tracking-[0.2em] text-slate-400">출제 범위</div>
+                      <div className="mt-1 font-semibold text-slate-900">
+                        {selectedHistoryPayload.rangeStart} ~ {selectedHistoryPayload.rangeEnd ?? '끝'}번
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-white px-4 py-3">
                       <div className="text-xs font-bold tracking-[0.2em] text-slate-400">진행 방식</div>
                       <div className="mt-1 font-semibold text-slate-900">{getParticipantModeLabel(selectedHistoryPayload.participantMode)}</div>
                     </div>
@@ -1168,7 +1320,7 @@ export default function ClassMissionPage() {
                             >
                               {result.outcome === 'correct' ? '정답' : result.outcome === 'wrong' ? '오답' : '건너뛰기'}
                             </div>
-                            <div className="mt-1 text-sm text-slate-600">{result.responder ?? '교사 선택'}</div>
+                            <div className="mt-1 text-sm text-slate-600">{result.responder ?? '무작위 선택'}</div>
                           </div>
                         </div>
                       </div>

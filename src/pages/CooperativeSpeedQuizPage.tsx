@@ -696,7 +696,27 @@ export default function CooperativeSpeedQuizPage() {
                   className="w-14 rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1.5 text-center text-sm focus:border-slate-400 focus:outline-none"
                 />
                 <span className="text-xs text-slate-400">/ {problems.length}문항</span>
+                <span className="ml-auto shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">
+                  {slicedProblems.length}문항 선택
+                </span>
+                {(rangeStart !== 1 || rangeEnd !== null) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRangeStart(1);
+                      setRangeEnd(null);
+                      setRangeStartInput('1');
+                      setRangeEndInput('');
+                    }}
+                    className="shrink-0 text-xs text-slate-400 hover:text-slate-700"
+                  >
+                    전체
+                  </button>
+                )}
               </div>
+            </div>
+            <div className="mt-2 self-end rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+              문제팩과 범위를 먼저 골라 두면 협동 스피드퀴즈가 그 설정 그대로 진행됩니다.
             </div>
           </div>
         </div>
