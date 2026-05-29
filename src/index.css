@@ -396,6 +396,29 @@ body,
     display: none !important;
   }
 
+  body.printing-problem-pack #root > * {
+    display: block !important;
+  }
+
+  body.printing-problem-pack .min-w-0,
+  body.printing-problem-pack .min-w-0 > main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body.printing-problem-pack .settings-page > :not(.print-modal) {
+    display: none !important;
+  }
+
+  body.printing-problem-pack * {
+    visibility: hidden;
+  }
+
+  body.printing-problem-pack .print-modal,
+  body.printing-problem-pack .print-modal * {
+    visibility: visible;
+  }
+
   #root,
   #root > div,
   main {
