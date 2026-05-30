@@ -14,16 +14,52 @@ import ClassMissionPage from './pages/ClassMissionPage';
 
 declare const __APP_COMMIT__: string;
 
-const navItems = [
-  { to: '/', label: '홈', end: true },
-  { to: '/seat', label: '자리 배치' },
-  { to: '/role-assignment', label: '역할 배치' },
-  { to: '/word-survival', label: '단어 서바이벌(개인전)' },
-  { to: '/word-survival-team', label: '단어 서바이벌(팀전)' },
-  { to: '/cooperative-speed-quiz', label: '협동 스피드 퀴즈' },
-  { to: '/class-mission', label: '학급 공동 미션' },
-  { to: '/settings', label: '설정' },
+const navSections = [
+  {
+    title: '시작',
+    items: [
+      { to: '/', label: '홈', end: true },
+      { to: '/settings', label: '설정' },
+    ],
+  },
+  {
+    title: '수업 도구',
+    items: [
+      { to: '/seat', label: '자리 배치' },
+      { to: '/role-assignment', label: '역할 배치' },
+      { to: '/word-survival', label: '단어 서바이벌' },
+      { to: '/word-survival-team', label: '팀 서바이벌' },
+      { to: '/cooperative-speed-quiz', label: '협동 스피드 퀴즈' },
+      { to: '/class-mission', label: '학급 공동 미션' },
+    ],
+  },
 ];
+
+function SidebarLink({
+  to,
+  label,
+  end,
+}: {
+  to: string;
+  label: string;
+  end?: boolean;
+}) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        `flex min-h-[44px] items-center rounded-2xl px-4 text-sm font-semibold transition ${
+          isActive
+            ? 'bg-slate-900 text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)]'
+            : 'text-slate-600 hover:bg-white hover:text-slate-900'
+        }`
+      }
+    >
+      {label}
+    </NavLink>
+  );
+}
 
 export default function App() {
   const [helpOpen, setHelpOpen] = useState(false);
@@ -55,7 +91,6 @@ export default function App() {
           setCommitHash(payload.commit);
         }
       } catch {
-        // Keep the build-time hash when the dev endpoint is unavailable.
       }
     };
 
@@ -72,81 +107,41 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-full lg:flex">
-      <aside className="border-b border-slate-200 bg-white lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r lg:bg-[linear-gradient(180deg,#fffdf8_0%,#f8fafc_32%,#f8fafc_100%)]">
-        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-4 lg:h-full lg:max-w-none lg:px-4 lg:py-5">
-          <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-4 text-center shadow-sm">
-            <div className="min-w-0">
-              <div className="text-[11px] font-black tracking-[0.28em] text-amber-600">CLASSROOM TOOLS</div>
-              <Link to="/" className="mt-2 inline-block text-[1.28rem] font-black tracking-[-0.02em] text-slate-900">
-                문해력 서바이벌
-              </Link>
-              <p className="mt-2 text-[13px] leading-5 text-slate-500">
-                초등 문해력
-                <br className="hidden lg:block" />
-                수업 도구 모음
-              </p>
-            </div>
+    <div className="min-h-full bg-slate-50 lg:flex">
+      <aside className="border-b border-slate-200 bg-[linear-gradient(180deg,#fffdf8_0%,#f8fafc_36%,#f8fafc_100%)] lg:sticky lg:top-0 lg:h-[calc(100vh-56px)] lg:w-72 lg:shrink-0 lg:border-b-0 lg:border-r">
+        <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-4 lg:h-full lg:max-w-none lg:px-5 lg:py-5">
+          <div className="rounded-[1.75rem] border border-slate-200 bg-white px-5 py-5 shadow-sm">
+            <Link to="/" className="mt-2 block text-[1.35rem] font-black tracking-[-0.03em] text-slate-900">
+              문해력 활동 도구모음
+            </Link>
           </div>
 
-          <nav className="grid grid-cols-2 gap-2 text-sm lg:grid-cols-1">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `group flex min-h-[48px] items-center justify-center rounded-[1.15rem] px-3 py-2.5 text-center font-semibold leading-tight transition lg:justify-center lg:px-3 ${
-                    isActive
-                      ? 'bg-slate-900 text-white shadow-[0_14px_30px_rgba(15,23,42,0.16)]'
-                      : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900'
-                  }`
-                }
-              >
-                <span className="max-w-[9rem]">{item.label}</span>
-              </NavLink>
-            ))}
-          </nav>
-
-          <button
-            type="button"
-            onClick={() => setHelpOpen(true)}
-            className="rounded-[1.2rem] border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-white hover:text-slate-900"
-          >
-            이 앱 사용법 보기
-          </button>
-
-          <a
-            href="https://www.xn--vz0ba242ncqcba79xhwx.site/"
-            target="_blank"
-            rel="noreferrer"
-            className="mt-2 hidden overflow-hidden rounded-[1.5rem] border border-amber-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-[0_16px_32px_rgba(245,158,11,0.18)] md:block lg:mt-5"
-            aria-label="끄적끄적 아지트 바로가기"
-          >
-            <img
-              src="/kkeujeok-banner.svg"
-              alt="끄적끄적 아지트 - 초등교사가 만든 글쓰기 활동 플랫폼"
-              className="block h-auto w-full"
-            />
-          </a>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1 lg:pb-4">
+            <div className="space-y-5">
+              {navSections.map((section) => (
+                <section key={section.title} className="rounded-[1.5rem] border border-slate-200 bg-white/80 p-3 shadow-sm backdrop-blur">
+                  <div className="px-1 pb-2 text-xs font-black tracking-[0.18em] text-slate-400">{section.title}</div>
+                  <div className="space-y-1.5">
+                    {section.items.map((item) => (
+                      <SidebarLink key={item.to} to={item.to} label={item.label} end={item.end} />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
         </div>
       </aside>
 
       <div className="min-w-0 flex-1">
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 pb-28 lg:px-8 lg:py-8 lg:pb-32">
+        <main className="mx-auto w-full max-w-7xl px-4 py-6 pb-28 lg:px-8 lg:py-8 lg:pb-32">
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/classes/:classId" element={<ClassDetailPage />} />
-            <Route
-              path="/classes/:classId/seat-history/:historyId"
-              element={<SeatHistoryPage />}
-            />
+            <Route path="/classes/:classId/seat-history/:historyId" element={<SeatHistoryPage />} />
             <Route path="/seat" element={<SeatPage />} />
             <Route path="/role-assignment" element={<RoleAssignmentPage />} />
-            <Route
-              path="/classes/:classId/role-history/:historyId"
-              element={<RoleAssignmentHistoryPage />}
-            />
+            <Route path="/classes/:classId/role-history/:historyId" element={<RoleAssignmentHistoryPage />} />
             <Route path="/word-survival" element={<IdiomBattlePage />} />
             <Route path="/word-survival-team" element={<TeamWordSurvivalPage />} />
             <Route path="/cooperative-speed-quiz" element={<CooperativeSpeedQuizPage />} />
@@ -156,19 +151,19 @@ export default function App() {
           </Routes>
         </main>
       </div>
+
       <footer className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 text-xs text-slate-500 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur no-print">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-2.5 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center md:justify-start md:text-left">
             <p>
               운영책임자: 유쌤
-              <span className="mx-2 text-slate-300">•</span>
+              <span className="mx-1.5 text-slate-300">•</span>
               문의:{' '}
               <a className="font-medium text-slate-600 hover:text-slate-900" href="mailto:yshgg@naver.com">
                 yshgg@naver.com
               </a>
             </p>
             <p>© 2026 끄적끄적 아지트. All rights reserved.</p>
-            <p className="text-[11px] text-slate-400">모든 데이터는 사용자의 브라우저에만 저장됩니다.</p>
           </div>
           <div className="flex justify-center md:justify-end">
             <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[11px] text-slate-500">
@@ -191,9 +186,9 @@ export default function App() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-xs font-black tracking-[0.28em] text-amber-600">GUIDE</div>
-                  <h2 className="mt-2 text-2xl font-black text-slate-900">문해력 서바이벌 사용법</h2>
+                  <h2 className="mt-2 text-2xl font-black text-slate-900">문해력 활동 도구모음 사용법</h2>
                   <p className="mt-2 text-sm text-slate-500">
-                    자리배치 결과를 바탕으로 역할 배치와 게임을 이어서 운영하는 흐름입니다.
+                    자리 배치 결과를 바탕으로 여러 수업 도구와 게임을 이어서 사용할 수 있습니다.
                   </p>
                 </div>
                 <button
@@ -209,86 +204,61 @@ export default function App() {
             <div className="overflow-y-auto px-5 py-5 md:px-7 md:py-6">
               <div className="grid gap-4 md:grid-cols-2">
                 <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
-                  <h3 className="text-lg font-black text-slate-900">1. 자리배치</h3>
+                  <h3 className="text-lg font-black text-slate-900">1. 자리 배치</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    학급을 만든 뒤 학생 명단을 불러오고 자리배치를 실행합니다. 최근 자리배치 결과는 이후
-                    역할 배치, 팀전, 협동 스피드 퀴즈에서 공통 기준으로 사용됩니다.
+                    학급 학생 명단을 불러오고 자리 배치를 실행합니다. 최근 자리 배치 결과는 역할 배치와 여러 활동 도구의 공통 기준이 됩니다.
                   </p>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    특히 좌우로 붙어 있는 짝 정보가 저장되므로 팀 활동을 할 때 바로 활용할 수 있습니다.
+                    같은 브라우저를 계속 사용하면 이전 데이터도 이어서 활용할 수 있습니다.
                   </p>
                 </section>
 
                 <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
                   <h3 className="text-lg font-black text-slate-900">2. 역할 배치</h3>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    자리배치에 등록된 학급 학생을 바탕으로 발표, 기록, 준비물, 정리 같은 역할을 무작위로
-                    배정합니다.
+                    자리 배치에 등록된 학생을 바탕으로 발표, 기록, 준비물, 정리 같은 역할을 무작위로 배정합니다.
                   </p>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    역할 수와 인원을 맞춰 두면 자동으로 배정되고, 결과는 기록으로 남겨 다시 확인할 수 있습니다.
+                    역할 수와 인원 수에 맞춰 자동 배정되며 결과는 기록으로 다시 확인할 수 있습니다.
                   </p>
                 </section>
 
                 <section className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm md:col-span-2">
-                  <h3 className="text-lg font-black text-slate-900">3. 자리배치 결과를 활용하는 게임 및 활동</h3>
+                  <h3 className="text-lg font-black text-slate-900">3. 자리 배치 결과를 쓰는 활동</h3>
                   <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
                       <div className="text-base font-black text-slate-900">단어 서바이벌 개인전</div>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">
-                        학급 전체를 대상으로 토너먼트를 진행합니다. 전체 학생 명단과 퀴즈 데이터를 활용해 개인 실력을 겨룹니다.
-                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">학급 전체를 대상으로 문제를 진행하며 개인 기록 중심으로 운영합니다.</p>
                     </div>
                     <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
                       <div className="text-base font-black text-slate-900">단어 서바이벌 팀전</div>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">
-                        최근 자리배치의 좌우 짝을 한 팀으로 자동 지정해 박진감 넘치는 팀전 대결을 진행합니다.
-                      </p>
-                      <p className="mt-2 text-sm leading-6 font-semibold text-slate-700">
-                        시작 전 자리배치 저장이 필요합니다.
-                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">최근 자리 배치의 좌우 짝을 팀으로 묶어 대결할 수 있습니다.</p>
+                      <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">시작 전 자리 배치 데이터가 필요합니다.</p>
                     </div>
                     <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
                       <div className="text-base font-black text-slate-900">협동 스피드 퀴즈</div>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">
-                        최근 자리배치 짝을 팀으로 사용합니다. 설명하는 사람과 맞히는 사람으로 나뉘어 순위 경쟁을 펼칩니다.
-                      </p>
-                      <p className="mt-2 text-sm leading-6 font-semibold text-slate-700">
-                        짝 매칭을 위해 자리배치 저장이 필요합니다.
-                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">최근 자리 배치 짝을 기준으로 빠르게 문제를 해결하는 활동입니다.</p>
+                      <p className="mt-2 text-sm font-semibold leading-6 text-slate-700">짝 구성을 위해 자리 배치가 필요합니다.</p>
                     </div>
                     <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
                       <div className="text-base font-black text-slate-900">학급 공동 미션</div>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">
-                        학급 전체가 실시간으로 힘을 모아 하나의 퀴즈 세트를 함께 해결하며 공동의 성공 기준을 달성하는 협동 활동입니다.
-                      </p>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">학급 전체가 하나의 목표를 향해 함께 해결하는 협동형 활동입니다.</p>
                     </div>
                   </div>
                 </section>
 
                 <section className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4 md:col-span-2">
-                  <h3 className="text-lg font-black text-slate-900">4. 설정 및 문제팩 A4 인쇄</h3>
-                  <div className="mt-2 text-sm leading-6 text-slate-600 space-y-2">
-                    <p>
-                      설정 페이지에서는 학습용 단어 문제팩을 직접 커스텀 생성 및 관리할 수 있으며, 
-                      <strong> A4 시험지 크기로 즉시 출력(인쇄)</strong>할 수 있는 프리뷰 기능을 지원합니다.
-                    </p>
-                    <p>
-                      출력 시 <strong>원하는 출력 범위(시작 ~ 끝 문항 번호)를 수치로 직접 지정</strong>할 수 있어, 
-                      전체 문항 중 특정 범위만 선택하여 알뜰하게 학습지로 인쇄해 사용할 수 있습니다.
-                    </p>
+                  <h3 className="text-lg font-black text-slate-900">4. 설정과 출력</h3>
+                  <div className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
+                    <p>설정 페이지에서는 학습지용 문제를 만들고 관리할 수 있으며 <strong>A4 인쇄용 출력</strong>도 지원합니다.</p>
+                    <p>출력 범위를 직접 지정할 수 있어 필요한 문항만 골라 학습지로 인쇄할 수 있습니다.</p>
                   </div>
                 </section>
 
                 <section className="rounded-[1.5rem] border border-amber-200 bg-amber-50 p-4 md:col-span-2">
-                  <h3 className="text-lg font-black text-slate-900">추천 운영 순서</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-700">
-                    학급 등록 → 자리배치 실행 → 필요시 역할 배치 → 설정에서 문제팩 생성 및 원하는 문항 범위 A4로 학습지 출력 → 개인전, 팀전 및 학급 공동 미션 수행 → 협동 스피드 퀴즈로 짝 활동 마무리.
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-slate-700">
-                    다양한 게임과 활동들은 최근 자리배치 결과를 실시간 기반으로 사용하므로, 
-                    자리를 바꾼 뒤에는 반드시 <strong>자리배치를 다시 한번 저장</strong>해 주어야 자연스럽게 자동 연동됩니다.
-                  </p>
+                  <h3 className="text-lg font-black text-slate-900">추천 사용 순서</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">학급 등록 → 자리 배치 → 역할 배치 또는 설정에서 문제 출력 → 개인전, 팀전, 공동 미션 순으로 이어서 쓰면 자연스럽습니다.</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">자리 구성이 바뀌면 새 활동 전에 자리 배치를 다시 실행하는 것을 권장합니다.</p>
                 </section>
               </div>
             </div>
