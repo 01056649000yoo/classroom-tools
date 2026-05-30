@@ -10,7 +10,7 @@ import grade4ProblemDeck from '../data/grade4_vocab.json';
 import grade5ProblemDeck from '../data/grade5_vocab.json';
 import grade6ProblemDeck from '../data/grade6_vocab.json';
 import { db, type HistoryEntry, type Student } from '../db';
-import { SAVED_PROBLEM_PACKS_KEY, type ProblemCard, type SavedProblemPack } from '../lib/problemPacks';
+import { SAVED_PROBLEM_PACKS_KEY, normalizeVocabSentencePack, type ProblemCard, type SavedProblemPack } from '../lib/problemPacks';
 import { shuffle } from '../lib/shuffle';
 import { sfx } from '../lib/sfx';
 
@@ -358,6 +358,10 @@ export default function IdiomBattlePage() {
   const grade4Problems = useMemo(() => normalizeProblemPack(grade4ProblemDeck), []);
   const grade5Problems = useMemo(() => normalizeProblemPack(grade5ProblemDeck), []);
   const grade6Problems = useMemo(() => normalizeProblemPack(grade6ProblemDeck), []);
+  const grade3SentenceProblems = useMemo(() => normalizeVocabSentencePack(grade3ProblemDeck), []);
+  const grade4SentenceProblems = useMemo(() => normalizeVocabSentencePack(grade4ProblemDeck), []);
+  const grade5SentenceProblems = useMemo(() => normalizeVocabSentencePack(grade5ProblemDeck), []);
+  const grade6SentenceProblems = useMemo(() => normalizeVocabSentencePack(grade6ProblemDeck), []);
   const [savedProblemPacks, setSavedProblemPacks] = useState<SavedProblemPack[]>(() => loadSavedProblemPacks());
   const [selectedProblemPackId, setSelectedProblemPackId] = useState('idiom');
   const [rangeStart, setRangeStart] = useState(1);
@@ -369,10 +373,14 @@ export default function IdiomBattlePage() {
       : selectedProblemPackId === 'idiom-initials' ? idiomInitialProblems
         : selectedProblemPackId === 'idiom-meaning-quiz' ? idiomMeaningQuizProblems
           : selectedProblemPackId === 'grade3-vocab' ? grade3Problems
-        : selectedProblemPackId === 'grade4-vocab' ? grade4Problems
-          : selectedProblemPackId === 'grade5-vocab' ? grade5Problems
-            : selectedProblemPackId === 'grade6-vocab' ? grade6Problems
-              : idiomProblems);
+            : selectedProblemPackId === 'grade4-vocab' ? grade4Problems
+              : selectedProblemPackId === 'grade5-vocab' ? grade5Problems
+                : selectedProblemPackId === 'grade6-vocab' ? grade6Problems
+                  : selectedProblemPackId === 'grade3-vocab-sentence' ? grade3SentenceProblems
+                    : selectedProblemPackId === 'grade4-vocab-sentence' ? grade4SentenceProblems
+                      : selectedProblemPackId === 'grade5-vocab-sentence' ? grade5SentenceProblems
+                        : selectedProblemPackId === 'grade6-vocab-sentence' ? grade6SentenceProblems
+                          : idiomProblems);
 
   const slicedProblems = useMemo(() => {
     if (problems.length === 0) return problems;
@@ -848,8 +856,8 @@ export default function IdiomBattlePage() {
         </Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-[240px] flex-1">
-            <h1 className="text-2xl font-bold text-slate-900">단어 서바이벌</h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <h1 className="text-2xl font-black text-slate-900">단어 서바이벌</h1>
+            <p className="mt-1 text-sm text-slate-500">
               사자성어·속담·어휘 문제팩을 JSON으로 선택하고, 모달에서 자동 진행되는 대결을 운영합니다.
             </p>
           </div>
@@ -866,10 +874,14 @@ export default function IdiomBattlePage() {
                   <option value="idiom-initials">사자성어 기본팩(초성)</option>
                   <option value="idiom-meaning-quiz">사자성어 기본팩(사자성어 맞추기)</option>
                   <option value="proverb">속담 기본팩</option>
-                  <option value="grade3-vocab">3학년 필수 어휘</option>
-                  <option value="grade4-vocab">4학년 필수 어휘</option>
-                  <option value="grade5-vocab">5학년 필수 어휘</option>
-                  <option value="grade6-vocab">6학년 필수 어휘</option>
+                  <option value="grade3-vocab">3학년 필수 어휘 (단어맞추기)</option>
+                  <option value="grade3-vocab-sentence">3학년 필수 어휘 (문장완성)</option>
+                  <option value="grade4-vocab">4학년 필수 어휘 (단어맞추기)</option>
+                  <option value="grade4-vocab-sentence">4학년 필수 어휘 (문장완성)</option>
+                  <option value="grade5-vocab">5학년 필수 어휘 (단어맞추기)</option>
+                  <option value="grade5-vocab-sentence">5학년 필수 어휘 (문장완성)</option>
+                  <option value="grade6-vocab">6학년 필수 어휘 (단어맞추기)</option>
+                  <option value="grade6-vocab-sentence">6학년 필수 어휘 (문장완성)</option>
                   {savedProblemPacks.map((pack) => (
                     <option key={pack.id} value={pack.id}>{pack.name}</option>
                   ))}

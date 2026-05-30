@@ -1,3 +1,32 @@
+const CHOSEONG = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+function toChoseong(word: string): string {
+  return word.split('').map((ch) => {
+    const code = ch.charCodeAt(0) - 0xAC00;
+    if (code < 0 || code > 11171) return ch;
+    return CHOSEONG[Math.floor(code / 588)];
+  }).join('');
+}
+
+export function normalizeVocabSentencePack(input: unknown): ProblemCard[] {
+  const source = Array.isArray(input)
+    ? input
+    : input && typeof input === 'object' && Array.isArray((input as Record<string, unknown>).items)
+      ? ((input as Record<string, unknown>).items as unknown[])
+      : [];
+
+  return source.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return [];
+    const raw = entry as Record<string, unknown>;
+    const word = typeof raw.word === 'string' ? raw.word.trim() : '';
+    const example = typeof raw.example === 'string' ? raw.example.trim() : '';
+    const hint = (typeof raw.category === 'string' ? raw.category.trim() : '') || undefined;
+    if (!word || !example || !example.includes(word)) return [];
+    const phrase = example.replace(word, `(${toChoseong(word)})`);
+    return [{ phrase, meaning: word, hint }];
+  });
+}
+
 export type ProblemCard = {
   phrase: string;
   meaning: string;

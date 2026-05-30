@@ -9,6 +9,7 @@ import grade5ProblemDeck from '../data/grade5_vocab.json';
 import grade6ProblemDeck from '../data/grade6_vocab.json';
 import { db, type HistoryEntry } from '../db';
 import { type SeatResultSeat } from '../lib/backup';
+import { normalizeVocabSentencePack } from '../lib/problemPacks';
 import { shuffle } from '../lib/shuffle';
 import { sfx } from '../lib/sfx';
 
@@ -79,16 +80,24 @@ type SpeedQuizPackId =
   | 'grade3-vocab'
   | 'grade4-vocab'
   | 'grade5-vocab'
-  | 'grade6-vocab';
+  | 'grade6-vocab'
+  | 'grade3-vocab-sentence'
+  | 'grade4-vocab-sentence'
+  | 'grade5-vocab-sentence'
+  | 'grade6-vocab-sentence';
 
 const DEFAULT_PACK_ID: SpeedQuizPackId = 'idiom';
 const PACK_OPTIONS: Array<{ id: SpeedQuizPackId; label: string }> = [
   { id: 'idiom', label: '사자성어 기본팩' },
   { id: 'proverb', label: '속담 기본팩' },
-  { id: 'grade3-vocab', label: '3학년 필수 어휘' },
-  { id: 'grade4-vocab', label: '4학년 필수 어휘' },
-  { id: 'grade5-vocab', label: '5학년 필수 어휘' },
-  { id: 'grade6-vocab', label: '6학년 필수 어휘' },
+  { id: 'grade3-vocab', label: '3학년 필수 어휘 (단어맞추기)' },
+  { id: 'grade3-vocab-sentence', label: '3학년 필수 어휘 (문장완성)' },
+  { id: 'grade4-vocab', label: '4학년 필수 어휘 (단어맞추기)' },
+  { id: 'grade4-vocab-sentence', label: '4학년 필수 어휘 (문장완성)' },
+  { id: 'grade5-vocab', label: '5학년 필수 어휘 (단어맞추기)' },
+  { id: 'grade5-vocab-sentence', label: '5학년 필수 어휘 (문장완성)' },
+  { id: 'grade6-vocab', label: '6학년 필수 어휘 (단어맞추기)' },
+  { id: 'grade6-vocab-sentence', label: '6학년 필수 어휘 (문장완성)' },
 ];
 
 function readString(raw: Record<string, unknown>, keys: string[]) {
@@ -333,6 +342,10 @@ export default function CooperativeSpeedQuizPage() {
   const grade4Problems = useMemo(() => normalizeVocabularyPack(grade4ProblemDeck), []);
   const grade5Problems = useMemo(() => normalizeVocabularyPack(grade5ProblemDeck), []);
   const grade6Problems = useMemo(() => normalizeVocabularyPack(grade6ProblemDeck), []);
+  const grade3SentenceProblems = useMemo(() => normalizeVocabSentencePack(grade3ProblemDeck), []);
+  const grade4SentenceProblems = useMemo(() => normalizeVocabSentencePack(grade4ProblemDeck), []);
+  const grade5SentenceProblems = useMemo(() => normalizeVocabSentencePack(grade5ProblemDeck), []);
+  const grade6SentenceProblems = useMemo(() => normalizeVocabSentencePack(grade6ProblemDeck), []);
 
   const [selectedPackId, setSelectedPackId] = useState<string>(DEFAULT_PACK_ID);
   const [rangeStart, setRangeStart] = useState(1);
@@ -359,7 +372,15 @@ export default function CooperativeSpeedQuizPage() {
           ? grade5Problems
           : activePackId === 'grade6-vocab'
             ? grade6Problems
-            : idiomProblems;
+            : activePackId === 'grade3-vocab-sentence'
+              ? grade3SentenceProblems
+              : activePackId === 'grade4-vocab-sentence'
+                ? grade4SentenceProblems
+                : activePackId === 'grade5-vocab-sentence'
+                  ? grade5SentenceProblems
+                  : activePackId === 'grade6-vocab-sentence'
+                    ? grade6SentenceProblems
+                    : idiomProblems;
 
   const slicedProblems = useMemo(() => {
     if (problems.length === 0) return problems;
@@ -647,10 +668,12 @@ export default function CooperativeSpeedQuizPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/" className="text-sm text-slate-500 hover:text-slate-800">돌아가기</Link>
+        <Link to="/" className="text-sm text-slate-500 hover:text-slate-800">
+          ← 홈으로
+        </Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-[240px] flex-1">
-            <h1 className="text-2xl font-bold text-slate-900">협동 스피드 퀴즈</h1>
+            <h1 className="text-2xl font-black text-slate-900">협동 스피드 퀴즈</h1>
             <p className="mt-1 text-sm text-slate-500">모달에서 퀴즈 시작을 눌러야 타이머가 시작됩니다.</p>
           </div>
           <div className="w-full max-w-xl lg:w-auto">

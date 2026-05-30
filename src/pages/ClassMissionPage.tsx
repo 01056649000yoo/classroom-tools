@@ -596,13 +596,12 @@ export default function ClassMissionPage() {
     <div className="space-y-6">
       <div>
         <Link to="/" className="text-sm text-slate-500 hover:text-slate-800">
-          돌아가기
+          ← 홈으로
         </Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-[240px] flex-1">
-            <div className="text-xs font-black tracking-[0.28em] text-amber-600">CLASS MISSION</div>
-            <h1 className="mt-2 text-2xl font-black text-slate-900">학급 공동 미션</h1>
-            <p className="mt-2 text-sm text-slate-500">
+            <h1 className="text-2xl font-black text-slate-900">학급 공동 미션</h1>
+            <p className="mt-1 text-sm text-slate-500">
               반 전체가 하나의 팀이 되어 제한 시간 안에 목표 정답 수를 넘겨 보세요.
             </p>
           </div>

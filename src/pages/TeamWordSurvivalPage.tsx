@@ -529,11 +529,13 @@ export default function TeamWordSurvivalPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/" className="text-sm text-slate-500 hover:text-slate-800">← 홈으로</Link>
+        <Link to="/" className="text-sm text-slate-500 hover:text-slate-800">
+          ← 홈으로
+        </Link>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-[240px] flex-1">
-            <h1 className="text-2xl font-bold text-slate-900">단어 서바이벌(팀전)</h1>
-            <p className="text-sm text-slate-500 mt-1">최근 자리배치의 좌우 짝을 팀으로 묶어 단어 서바이벌을 진행합니다.</p>
+            <h1 className="text-2xl font-black text-slate-900">단어 서바이벌(팀전)</h1>
+            <p className="mt-1 text-sm text-slate-500">최근 자리배치의 좌우 짝을 팀으로 묶어 단어 서바이벌을 진행합니다.</p>
           </div>
           <div className="ml-auto w-full max-w-xl lg:w-auto">
             <div className="rounded-xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100">
