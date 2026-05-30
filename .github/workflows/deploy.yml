@@ -29,3 +29,7 @@ jobs:
         run: |
           sleep 5
           docker ps --filter "name=classroom-tools" --format "{{.Status}}"
+
+      - name: Verify served commit
+        run: |
+          curl --fail --silent http://127.0.0.1:8080/__app_commit.json

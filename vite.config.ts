@@ -16,10 +16,17 @@ function commitMetaPlugin() {
   return {
     name: 'commit-meta-plugin',
     configureServer(server: { middlewares: { use: (path: string, handler: (req: unknown, res: { setHeader: (name: string, value: string) => void; end: (body: string) => void }) => void) => void } }) {
-      server.middlewares.use('/__app_commit', (_req, res) => {
+      server.middlewares.use('/__app_commit.json', (_req, res) => {
         res.setHeader('Content-Type', 'application/json');
         res.setHeader('Cache-Control', 'no-store');
         res.end(JSON.stringify({ commit: resolveGitCommit() }));
+      });
+    },
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: '__app_commit.json',
+        source: JSON.stringify({ commit: resolveGitCommit() }),
       });
     },
   };

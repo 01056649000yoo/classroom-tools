@@ -14,6 +14,8 @@ import ClassMissionPage from './pages/ClassMissionPage';
 
 declare const __APP_COMMIT__: string;
 
+const APP_TITLE = '문해력 서바이벌 - 교실수업 문해력 활동 도구툴-';
+
 const navSections = [
   {
     title: '시작',
@@ -66,20 +68,18 @@ export default function App() {
   const [commitHash, setCommitHash] = useState(__APP_COMMIT__);
 
   useEffect(() => {
+    document.title = APP_TITLE;
+
     const isLocalDevServer =
       typeof window !== 'undefined' &&
       ['localhost', '127.0.0.1'].includes(window.location.hostname) &&
       window.location.port === '5173';
 
-    if (!isLocalDevServer) {
-      return;
-    }
-
     let cancelled = false;
 
     const syncCommitHash = async () => {
       try {
-        const response = await fetch('/__app_commit', { cache: 'no-store' });
+        const response = await fetch('/__app_commit.json', { cache: 'no-store' });
 
         if (!response.ok) {
           return;
@@ -96,23 +96,35 @@ export default function App() {
 
     void syncCommitHash();
 
-    const interval = window.setInterval(() => {
-      void syncCommitHash();
-    }, 10000);
+    const interval = isLocalDevServer
+      ? window.setInterval(() => {
+          void syncCommitHash();
+        }, 10000)
+      : null;
 
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
+      if (interval !== null) {
+        window.clearInterval(interval);
+      }
     };
-  }, []);
+  }, [helpOpen]);
 
   return (
     <div className="min-h-full bg-slate-50 lg:flex">
       <aside className="border-b border-slate-200 bg-[linear-gradient(180deg,#fffdf8_0%,#f8fafc_36%,#f8fafc_100%)] lg:sticky lg:top-0 lg:h-[calc(100vh-56px)] lg:w-72 lg:shrink-0 lg:border-b-0 lg:border-r">
         <div className="mx-auto flex max-w-6xl flex-col gap-5 px-4 py-4 lg:h-full lg:max-w-none lg:px-5 lg:py-5">
-          <div className="rounded-[1.75rem] border border-slate-200 bg-white px-5 py-5 shadow-sm">
-            <Link to="/" className="mt-2 block text-[1.35rem] font-black tracking-[-0.03em] text-slate-900">
-              문해력 활동 도구모음
+          <div className="px-1 py-1.5 select-none">
+            <Link to="/" className="group block select-none">
+              <h1 className="flex flex-col gap-1">
+                <span className="flex items-center gap-2 text-2xl font-black tracking-tight text-slate-900 group-hover:text-slate-700 transition-colors">
+                  <span>문해력 서바이벌</span>
+                  <span className="text-xl">🔥</span>
+                </span>
+                <span className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase">
+                  교실수업 문해력 활동 도구툴
+                </span>
+              </h1>
             </Link>
           </div>
 
@@ -186,7 +198,9 @@ export default function App() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="text-xs font-black tracking-[0.28em] text-amber-600">GUIDE</div>
-                  <h2 className="mt-2 text-2xl font-black text-slate-900">문해력 활동 도구모음 사용법</h2>
+                  <h2 className="mt-2 text-2xl font-black text-slate-900">
+                    문해력 서바이벌 <span className="text-slate-500 font-semibold text-lg">- 교실수업 문해력 활동 도구툴- 사용법</span>
+                  </h2>
                   <p className="mt-2 text-sm text-slate-500">
                     자리 배치 결과를 바탕으로 여러 수업 도구와 게임을 이어서 사용할 수 있습니다.
                   </p>
